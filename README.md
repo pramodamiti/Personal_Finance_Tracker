@@ -527,7 +527,4 @@ Contributions, suggestions, and improvements are welcome.
 3. Commit your changes
 4. Open a pull request
 
-## License
-
-Add your preferred license here, for example MIT, Apache-2.0, or GPL.
 

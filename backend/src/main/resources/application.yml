@@ -43,6 +43,8 @@ management:
       enabled: true
     readinessstate:
       enabled: true
+    mail:
+      enabled: false
   metrics:
     tags:
       application: ${spring.application.name}

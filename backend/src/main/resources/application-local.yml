@@ -1,0 +1,20 @@
+app:
+  cors:
+    allowed-origins: []
+    allowed-origin-patterns:
+      - "*"
+      - "https://localhost:*"
+      - "https://127.0.0.1:*"
+      - "http://localhost:*"
+      - "http://127.0.0.1:*"
+
+management:
+  health:
+    mail:
+      enabled: false
+
+springdoc:
+  swagger-ui:
+    enabled: true
+  api-docs:
+    enabled: true

@@ -36,7 +36,7 @@ function resolveBaseURL(): string {
   }
 
   if (env) return normalizeBaseUrl(env);
-  return 'http://localhost:8080/api';
+  return 'https://friendly-pancake-69749gv7xp9qhrwx-8080.app.github.dev/api';
 }
 
 const baseURL = resolveBaseURL();

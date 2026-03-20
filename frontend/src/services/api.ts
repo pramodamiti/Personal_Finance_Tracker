@@ -8,6 +8,14 @@ function normalizeBaseUrl(value: string): string {
 function resolveBaseURL(): string {
   const env = import.meta.env.VITE_API_BASE_URL as string | undefined;
 
+  // If we're served from a Worker/Pages site that proxies `/api/*`, keep everything same-origin.
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host.endsWith('.workers.dev') || host.endsWith('.pages.dev')) {
+      return '/api';
+    }
+  }
+
   // Cloudflare Workers static-assets deployments can't use runtime "Worker vars",
   // so allow setting the API base URL via a query param once and persist it.
   if (typeof window !== 'undefined') {
@@ -16,7 +24,11 @@ function resolveBaseURL(): string {
       const fromQuery = url.searchParams.get('apiBaseUrl');
       if (fromQuery) {
         const normalized = normalizeBaseUrl(fromQuery);
-        localStorage.setItem('pft-api-base-url', normalized);
+        try {
+          localStorage.setItem('pft-api-base-url', normalized);
+        } catch {
+          // Ignore storage failures (e.g. private browsing); still use the query override for this session.
+        }
         url.searchParams.delete('apiBaseUrl');
         window.history.replaceState({}, '', url.toString());
         return normalized;

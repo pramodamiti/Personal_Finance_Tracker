@@ -1,14 +1,9 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "personalfinancetracker",
-  "compatibility_date": "2025-09-27",
-  "observability": {
-    "enabled": true
-  },
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "pft",
+  "compatibility_date": "2026-03-20",
   "assets": {
-    "directory": "frontend"
-  },
-  "compatibility_flags": [
-    "nodejs_compat"
-  ]
+    "directory": "./frontend/dist",
+    "not_found_handling": "single-page-application"
+  }
 }

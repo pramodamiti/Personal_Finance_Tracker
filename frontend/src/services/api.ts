@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { clearAuthSnapshot, getAuthSnapshot, replaceAuthSnapshot } from '../store/authStore';
 
-const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'https://your-codespace-name-8080.app.github.dev/api';
+const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'https://friendly-pancake-69749gv7xp9qhrwx-8080.app.github.dev//api';
 export const api = axios.create({ baseURL });
 
 api.interceptors.request.use((config) => {

@@ -2,7 +2,7 @@ spring:
   application:
     name: personal-finance-tracker-backend
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://ep-your-neon-endpoint.eastus2.azure.neon.tech/neondb?sslmode=require&channel_binding=require}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://ep-your-neon-endpoint.eastus2.azure.neon.tech/neondb?sslmode=require}
     username: ${SPRING_DATASOURCE_USERNAME:neondb_owner}
     password: ${SPRING_DATASOURCE_PASSWORD:replace-with-your-neon-password}
   jpa:
@@ -64,7 +64,7 @@ logging:
 app:
   cors:
     allowed-origins:
-      - ${APP_FRONTEND_URL:http://localhost:5173}
+      - ${APP_FRONTEND_URL:http://localhost:1455}
   security:
     log-password-reset-tokens: ${APP_SECURITY_LOG_PASSWORD_RESET_TOKENS:false}
   scheduling:

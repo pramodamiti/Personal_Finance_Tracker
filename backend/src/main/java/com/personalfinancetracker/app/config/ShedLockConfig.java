@@ -16,7 +16,6 @@ public class ShedLockConfig {
         return new JdbcTemplateLockProvider(
                 JdbcTemplateLockProvider.Configuration.builder()
                         .withJdbcTemplate(new JdbcTemplate(dataSource))
-                        .usingDbTime()
                         .build());
     }
 }

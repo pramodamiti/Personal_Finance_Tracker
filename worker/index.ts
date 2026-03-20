@@ -40,7 +40,13 @@ export default {
     // Reverse-proxy API calls so the SPA can always use same-origin `/api/...`.
     if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
       if (!env.BACKEND_ORIGIN || !env.BACKEND_ORIGIN.trim()) {
-        return new Response('BACKEND_ORIGIN is not configured', { status: 500 });
+        return Response.json(
+          {
+            error: 'BACKEND_ORIGIN is not configured',
+            hint: 'Set Worker variable BACKEND_ORIGIN to your public backend origin, e.g. https://<codespace>-8080.app.github.dev',
+          },
+          { status: 500 }
+        );
       }
 
       if (request.method === 'OPTIONS') {
@@ -60,7 +66,23 @@ export default {
         init.body = request.body;
       }
 
-      return fetch(new Request(upstreamUrl.toString(), init));
+      try {
+        const upstream = await fetch(new Request(upstreamUrl.toString(), init));
+        const headers = new Headers(upstream.headers);
+        headers.set('x-pft-proxy', '1');
+        headers.set('x-pft-upstream', upstreamUrl.origin);
+        return new Response(upstream.body, { status: upstream.status, headers });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return Response.json(
+          {
+            error: 'Upstream fetch failed',
+            upstream: upstreamUrl.toString(),
+            message,
+          },
+          { status: 502 }
+        );
+      }
     }
 
     return env.ASSETS.fetch(request);

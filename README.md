@@ -47,24 +47,15 @@ A full-stack monorepo implementation of a V1 personal finance tracker using Reac
     └── src/
 ```
 
-## Local setup
+## Codespaces + Neon setup
 
 ### Prerequisites
 - Node.js 18+
 - Java 21+
 - Maven 3.9+
-- Docker / Docker Compose
+- A Neon PostgreSQL database
 
-### 1. Start infrastructure
-```bash
-docker compose up -d
-```
-
-This starts:
-- PostgreSQL on `localhost:5432`
-- MailHog on `localhost:8025` with SMTP on `localhost:1025`
-
-### 2. Configure environment
+### 1. Configure environment
 Copy the examples if desired:
 
 ```bash
@@ -73,19 +64,30 @@ cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 ```
 
-The backend currently reads Spring datasource and JWT settings from environment variables. The examples include working local defaults.
+Set the backend to your Neon JDBC values and your Codespaces frontend URL. Set the frontend API URL to your forwarded backend URL.
 
-### 3. Run the backend
+Example:
+
+```bash
+export SPRING_DATASOURCE_URL='jdbc:postgresql://ep-your-neon-endpoint.eastus2.azure.neon.tech/neondb?sslmode=require&channel_binding=require'
+export SPRING_DATASOURCE_USERNAME='neondb_owner'
+export SPRING_DATASOURCE_PASSWORD='your-neon-password'
+export APP_FRONTEND_URL='https://your-codespace-name-1455.app.github.dev'
+export JWT_SECRET='change-me-super-secret-key-change-me-super-secret-key'
+export SPRING_PROFILES_ACTIVE='local'
+```
+
+### 2. Run the backend
 ```bash
 cd backend
 ./mvnw spring-boot:run
 ```
 
 Backend URLs:
-- API: `http://localhost:8080/api`
-- Swagger UI: `http://localhost:8080/swagger-ui.html`
+- API: `https://your-codespace-name-8080.app.github.dev/api`
+- Swagger UI: `https://your-codespace-name-8080.app.github.dev/swagger-ui.html`
 
-### 4. Run the frontend
+### 3. Run the frontend
 ```bash
 cd frontend
 npm install
@@ -93,7 +95,7 @@ npm run dev
 ```
 
 Frontend URL:
-- `http://localhost:5173`
+- `https://your-codespace-name-1455.app.github.dev`
 
 ## Product scope implemented
 
@@ -125,7 +127,7 @@ Frontend URL:
 - **Forgot password delivery:** local development uses a practical dev flow. A reset token is generated and printed by the backend, and MailHog is included in Docker Compose for teams that want SMTP inspection.
 - **Default categories:** users receive a starter category set on registration.
 - **Tags:** PostgreSQL `text[]` is used for transaction tags to keep the schema compact.
-- **Recurring processing:** scheduler safety is designed for local or single-instance use.
+- **Recurring processing:** scheduler safety now uses distributed locking so multiple replicas can share the same PostgreSQL database safely.
 - **System defaults vs user categories:** the current implementation seeds user-owned defaults at registration, which keeps user scoping simple.
 - **Frontend forms:** the UI is intentionally pragmatic and demo-friendly rather than fully component-library-driven.
 - **Demo data:** no automatic demo dataset is inserted; the app is ready for manual entry immediately after sign-up.
@@ -208,4 +210,4 @@ Small non-blocking next steps if you want to keep iterating:
 - Add richer edit/delete UI flows and modal-based resource forms on the frontend.
 - Expand automated backend and frontend tests.
 - Harden report endpoints with database-level aggregate queries instead of in-memory aggregation.
-- Add production email templates and HTTPS/proxy deployment configuration.
+- Add production email templates and Codespaces-friendly dev mail handling if you need password reset email testing without SMTP.

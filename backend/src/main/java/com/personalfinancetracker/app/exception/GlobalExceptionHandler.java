@@ -7,6 +7,7 @@ import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -32,8 +33,25 @@ public class GlobalExceptionHandler {
                         .collect(Collectors.toMap(FieldError::getField, FieldError::getDefaultMessage, (a, b) -> a))));
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ResponseEntity<?> handleUnreadableBody(HttpMessageNotReadableException ex) {
+        return ResponseEntity.badRequest().body(Map.of(
+                "timestamp", OffsetDateTime.now(),
+                "message", rootMessage(ex),
+                "correlationId", mdc("correlationId"),
+                "traceId", mdc("traceId")));
+    }
+
     private String mdc(String key) {
         String value = MDC.get(key);
         return value == null ? "" : value;
+    }
+
+    private String rootMessage(Throwable throwable) {
+        Throwable current = throwable;
+        while (current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current.getMessage() == null ? throwable.getMessage() : current.getMessage();
     }
 }

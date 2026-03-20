@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { clearAuthSnapshot, getAuthSnapshot, replaceAuthSnapshot } from '../store/authStore';
 
 function resolveBaseUrl(): string {
   const configured = import.meta.env.VITE_API_BASE_URL;
@@ -20,10 +21,9 @@ const baseURL = resolveBaseUrl();
 export const api = axios.create({ baseURL });
 
 api.interceptors.request.use((config) => {
-  const auth = localStorage.getItem('pft-auth');
-  if (auth) {
-    const parsed = JSON.parse(auth);
-    if (parsed.accessToken) config.headers.Authorization = `Bearer ${parsed.accessToken}`;
+  const auth = getAuthSnapshot();
+  if (auth.accessToken) {
+    config.headers.Authorization = `Bearer ${auth.accessToken}`;
   }
   return config;
 });
@@ -31,18 +31,22 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const auth = localStorage.getItem('pft-auth');
-    if (error.response?.status === 401 && auth) {
-      const parsed = JSON.parse(auth);
-      if (parsed.refreshToken && !error.config._retry) {
+    const auth = getAuthSnapshot();
+    if (error.response?.status === 401 && auth.refreshToken) {
+      if (!error.config._retry) {
         error.config._retry = true;
-        const refresh = await axios.post(`${baseURL}/auth/refresh`, { refreshToken: parsed.refreshToken });
-        const next = { ...parsed, ...refresh.data };
-        localStorage.setItem('pft-auth', JSON.stringify(next));
-        error.config.headers.Authorization = `Bearer ${next.accessToken}`;
-        return api.request(error.config);
+        try {
+          const refresh = await axios.post(`${baseURL}/auth/refresh`, { refreshToken: auth.refreshToken });
+          const next = replaceAuthSnapshot(refresh.data);
+          error.config.headers.Authorization = `Bearer ${next.accessToken}`;
+          return api.request(error.config);
+        } catch (refreshError) {
+          clearAuthSnapshot();
+          window.location.href = '/login';
+          return Promise.reject(refreshError);
+        }
       }
-      localStorage.removeItem('pft-auth');
+      clearAuthSnapshot();
       window.location.href = '/login';
     }
     return Promise.reject(error);

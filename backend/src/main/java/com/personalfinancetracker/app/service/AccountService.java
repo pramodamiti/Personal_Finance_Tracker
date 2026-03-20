@@ -27,10 +27,12 @@ public class AccountService {
         this.transactionService = transactionService;
     }
 
+    @Transactional(readOnly = true)
     public List<AccountResponse> list() {
         return accountRepository.findByUserIdAndArchivedFalseOrderByNameAsc(authFacade.currentUser().getId()).stream().map(mapper::toAccount).toList();
     }
 
+    @Transactional(readOnly = true)
     public AccountResponse get(UUID id) {
         return mapper.toAccount(findEntity(id));
     }
@@ -69,6 +71,7 @@ public class AccountService {
         transactionService.create(tx);
     }
 
+    @Transactional(readOnly = true)
     public Account findEntity(UUID id) {
         return accountRepository.findByIdAndUserId(id, authFacade.currentUser().getId()).orElseThrow(() -> new ApiException("Account not found"));
     }

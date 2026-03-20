@@ -30,7 +30,9 @@ public class GoalService {
         this.mapper = mapper;
     }
 
+    @Transactional(readOnly = true)
     public List<GoalResponse> list() { return goalRepository.findByUserIdOrderByCreatedAtDesc(authFacade.currentUser().getId()).stream().map(mapper::toGoal).toList(); }
+    @Transactional(readOnly = true)
     public GoalResponse get(UUID id) { return mapper.toGoal(findEntity(id)); }
 
     @Transactional
@@ -87,5 +89,6 @@ public class GoalService {
         goal.setStatus(request.status() == null ? GoalStatus.ACTIVE : request.status());
     }
 
+    @Transactional(readOnly = true)
     private Goal findEntity(UUID id) { return goalRepository.findByIdAndUserId(id, authFacade.currentUser().getId()).orElseThrow(() -> new ApiException("Goal not found")); }
 }

@@ -2,6 +2,11 @@ node_modules/
 frontend/node_modules/
 frontend/dist/
 backend/target/
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+.terraform.lock.hcl
 *.log
 .env
 backend/.env

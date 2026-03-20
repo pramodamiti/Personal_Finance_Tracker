@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body { @apply bg-canvas text-slate-900; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.card { @apply rounded-2xl bg-white shadow-sm border border-slate-200 p-5; }
+.btn { @apply inline-flex items-center justify-center rounded-xl px-4 py-2 font-medium transition; }
+.btn-primary { @apply btn bg-primary text-white hover:bg-blue-900; }
+.btn-secondary { @apply btn bg-slate-100 text-slate-900 hover:bg-slate-200; }
+.input { @apply w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-primary focus:outline-none; }
+.label { @apply mb-1 block text-sm font-medium text-slate-700; }

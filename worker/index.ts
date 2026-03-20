@@ -1,6 +1,6 @@
 export interface Env {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
-  BACKEND_ORIGIN: string;
+  BACKEND_ORIGIN?: string;
 }
 
 function normalizeOrigin(value: string): string {
@@ -38,12 +38,32 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
+    const fallbackBackendOrigin = 'https://friendly-pancake-69749gv7xp9qhrwx-8080.app.github.dev';
+    const workerVersion = 'pft-proxy-v1';
+
     if (url.pathname === '/__pft_debug') {
+      const configured = Boolean(env.BACKEND_ORIGIN && env.BACKEND_ORIGIN.trim());
+      const backendOrigin = configured ? normalizeOrigin(env.BACKEND_ORIGIN!) : fallbackBackendOrigin;
+
+      const checkUpstream = url.searchParams.get('checkUpstream') === '1';
+      let upstreamHealth: { ok: boolean; status?: number; error?: string } | null = null;
+      if (checkUpstream) {
+        try {
+          const healthUrl = new URL('/actuator/health', backendOrigin);
+          const res = await fetch(healthUrl.toString(), { method: 'GET' });
+          upstreamHealth = { ok: res.ok, status: res.status };
+        } catch (e) {
+          upstreamHealth = { ok: false, error: e instanceof Error ? e.message : String(e) };
+        }
+      }
       return Response.json(
         {
           ok: true,
-          backendOriginConfigured: Boolean(env.BACKEND_ORIGIN && env.BACKEND_ORIGIN.trim()),
-          backendOrigin: env.BACKEND_ORIGIN ? normalizeOrigin(env.BACKEND_ORIGIN) : null,
+          workerVersion,
+          backendOriginConfigured: configured,
+          backendOrigin,
+          backendOriginSource: configured ? 'env' : 'fallback',
+          upstreamHealth,
           now: new Date().toISOString(),
         },
         { status: 200 }
@@ -52,22 +72,15 @@ export default {
 
     // Reverse-proxy API calls so the SPA can always use same-origin `/api/...`.
     if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
-      if (!env.BACKEND_ORIGIN || !env.BACKEND_ORIGIN.trim()) {
-        return Response.json(
-          {
-            error: 'BACKEND_ORIGIN is not configured',
-            hint: 'Set Worker variable BACKEND_ORIGIN to your public backend origin, e.g. https://<codespace>-8080.app.github.dev',
-          },
-          { status: 500 }
-        );
-      }
+      const backendOrigin =
+        env.BACKEND_ORIGIN && env.BACKEND_ORIGIN.trim() ? normalizeOrigin(env.BACKEND_ORIGIN) : fallbackBackendOrigin;
 
       if (request.method === 'OPTIONS') {
         // Same-origin preflight shouldn't happen, but make it safe.
         return new Response(null, { status: 204 });
       }
 
-      const upstreamUrl = buildUpstreamUrl(request.url, env.BACKEND_ORIGIN);
+      const upstreamUrl = buildUpstreamUrl(request.url, backendOrigin);
       const init: RequestInit = {
         method: request.method,
         headers: stripHopByHopAndCorsRequestHeaders(request.headers),
@@ -98,6 +111,16 @@ export default {
       }
     }
 
-    return env.ASSETS.fetch(request);
+    const asset = await env.ASSETS.fetch(request);
+    const headers = new Headers(asset.headers);
+    headers.set('x-pft-worker', workerVersion);
+
+    // Mobile browsers can aggressively cache HTML. Ensure the shell updates quickly.
+    const contentType = headers.get('content-type') || '';
+    if (contentType.includes('text/html')) {
+      headers.set('cache-control', 'no-store');
+    }
+
+    return new Response(asset.body, { status: asset.status, headers });
   },
 };

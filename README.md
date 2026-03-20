@@ -84,8 +84,8 @@ cd backend
 ```
 
 Backend URLs:
-- API: `https://your-codespace-name-8080.app.github.dev/api`
-- Swagger UI: `https://your-codespace-name-8080.app.github.dev/swagger-ui.html`
+- API: `https://friendly-pancake-69749gv7xp9qhrwx-8080.app.github.dev/api`
+- Swagger UI: `https://friendly-pancake-69749gv7xp9qhrwx-8080.app.github.dev/swagger-ui.html`
 
 ### 3. Run the frontend
 ```bash

@@ -21,6 +21,7 @@ function stripHopByHopAndCorsRequestHeaders(headers: Headers): Headers {
   next.delete('access-control-request-headers');
 
   // Hop-by-hop headers.
+  next.delete('host');
   next.delete('connection');
   next.delete('keep-alive');
   next.delete('proxy-authenticate');
@@ -36,6 +37,18 @@ function stripHopByHopAndCorsRequestHeaders(headers: Headers): Headers {
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+
+    if (url.pathname === '/__pft_debug') {
+      return Response.json(
+        {
+          ok: true,
+          backendOriginConfigured: Boolean(env.BACKEND_ORIGIN && env.BACKEND_ORIGIN.trim()),
+          backendOrigin: env.BACKEND_ORIGIN ? normalizeOrigin(env.BACKEND_ORIGIN) : null,
+          now: new Date().toISOString(),
+        },
+        { status: 200 }
+      );
+    }
 
     // Reverse-proxy API calls so the SPA can always use same-origin `/api/...`.
     if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {

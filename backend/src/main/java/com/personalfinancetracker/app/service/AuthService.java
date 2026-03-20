@@ -69,15 +69,19 @@ public class AuthService {
         user.setEmail(request.email().toLowerCase());
         user.setDisplayName(request.displayName());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
+        user.setLastLoginAt(OffsetDateTime.now());
         userRepository.save(user);
         seedDefaultCategories(user);
         return issueTokens(user);
     }
 
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         consume(rateLimitConfig.resolve("login:" + request.email().toLowerCase(), 10));
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.email(), request.password()));
         User user = userRepository.findByEmailIgnoreCase(request.email()).orElseThrow();
+        user.setLastLoginAt(OffsetDateTime.now());
+        userRepository.save(user);
         return issueTokens(user);
     }
 

@@ -3,6 +3,7 @@ package com.personalfinancetracker.app.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "users")
@@ -15,6 +16,8 @@ public class User extends BaseEntity {
     private String displayName;
     @Column(nullable = false)
     private boolean active = true;
+    @Column(name = "last_login_at")
+    private OffsetDateTime lastLoginAt;
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
@@ -24,4 +27,6 @@ public class User extends BaseEntity {
     public void setDisplayName(String displayName) { this.displayName = displayName; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+    public OffsetDateTime getLastLoginAt() { return lastLoginAt; }
+    public void setLastLoginAt(OffsetDateTime lastLoginAt) { this.lastLoginAt = lastLoginAt; }
 }

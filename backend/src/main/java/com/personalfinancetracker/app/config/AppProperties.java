@@ -9,6 +9,7 @@ public class AppProperties {
     private final Cors cors = new Cors();
     private final Security security = new Security();
     private final Scheduling scheduling = new Scheduling();
+    private final Mail mail = new Mail();
     private final Observability observability = new Observability();
 
     public Cors getCors() {
@@ -21,6 +22,10 @@ public class AppProperties {
 
     public Scheduling getScheduling() {
         return scheduling;
+    }
+
+    public Mail getMail() {
+        return mail;
     }
 
     public Observability getObservability() {
@@ -90,6 +95,54 @@ public class AppProperties {
 
         public void setCorrelationHeader(String correlationHeader) {
             this.correlationHeader = correlationHeader;
+        }
+    }
+
+    public static class Mail {
+        private boolean dailyEnabled;
+        private String dailyCron = "0 0 8 * * *";
+        private String dailyZone = "UTC";
+        private String from = "no-reply@finance-tracker.local";
+        private int dailyActiveWithinDays = 30;
+
+        public boolean isDailyEnabled() {
+            return dailyEnabled;
+        }
+
+        public void setDailyEnabled(boolean dailyEnabled) {
+            this.dailyEnabled = dailyEnabled;
+        }
+
+        public String getDailyCron() {
+            return dailyCron;
+        }
+
+        public void setDailyCron(String dailyCron) {
+            this.dailyCron = dailyCron;
+        }
+
+        public String getDailyZone() {
+            return dailyZone;
+        }
+
+        public void setDailyZone(String dailyZone) {
+            this.dailyZone = dailyZone;
+        }
+
+        public String getFrom() {
+            return from;
+        }
+
+        public void setFrom(String from) {
+            this.from = from;
+        }
+
+        public int getDailyActiveWithinDays() {
+            return dailyActiveWithinDays;
+        }
+
+        public void setDailyActiveWithinDays(int dailyActiveWithinDays) {
+            this.dailyActiveWithinDays = dailyActiveWithinDays;
         }
     }
 }

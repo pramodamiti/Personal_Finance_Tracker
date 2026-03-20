@@ -22,6 +22,7 @@ public class CategoryService {
         this.authFacade = authFacade;
     }
 
+    @Transactional(readOnly = true)
     public List<CategoryResponse> list() {
         return categoryRepository.findByUserIdOrSystemDefaultTrueOrderByNameAsc(authFacade.currentUser().getId()).stream().map(mapper::toCategory).toList();
     }
@@ -54,6 +55,7 @@ public class CategoryService {
         categoryRepository.save(category);
     }
 
+    @Transactional(readOnly = true)
     public Category findEntity(UUID id) {
         Category category = categoryRepository.findByIdAndArchivedFalse(id).orElseThrow(() -> new ApiException("Category not found"));
         if (category.getUser() != null && !category.getUser().getId().equals(authFacade.currentUser().getId())) throw new ApiException("Category not found");

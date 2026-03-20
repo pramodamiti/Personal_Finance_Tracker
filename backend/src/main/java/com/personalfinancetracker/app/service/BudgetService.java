@@ -27,6 +27,7 @@ public class BudgetService {
         this.transactionRepository = transactionRepository;
     }
 
+    @Transactional(readOnly = true)
     public List<BudgetResponse> list(int month, int year) {
         return budgetRepository.findByUserIdAndBudgetMonthAndBudgetYearOrderByCreatedAtAsc(authFacade.currentUser().getId(), month, year)
                 .stream().map(this::toResponse).toList();

@@ -36,8 +36,11 @@ public class RecurringService {
         this.transactionService = transactionService;
     }
 
+    @Transactional(readOnly = true)
     public List<RecurringResponse> list() { return recurringRepository.findByUserIdOrderByNextRunDateAsc(authFacade.currentUser().getId()).stream().map(mapper::toRecurring).toList(); }
+    @Transactional(readOnly = true)
     public RecurringResponse get(UUID id) { return mapper.toRecurring(findEntity(id)); }
+    @Transactional(readOnly = true)
     public List<RecurringResponse> upcoming() { return recurringRepository.findTop5ByUserIdAndActiveTrueAndNextRunDateGreaterThanEqualOrderByNextRunDateAsc(authFacade.currentUser().getId(), LocalDate.now()).stream().map(mapper::toRecurring).toList(); }
 
     @Transactional
@@ -88,5 +91,6 @@ public class RecurringService {
         recurring.setActive(request.active());
     }
 
+    @Transactional(readOnly = true)
     public RecurringTransaction findEntity(UUID id) { return recurringRepository.findByIdAndUserId(id, authFacade.currentUser().getId()).orElseThrow(() -> new ApiException("Recurring transaction not found")); }
 }

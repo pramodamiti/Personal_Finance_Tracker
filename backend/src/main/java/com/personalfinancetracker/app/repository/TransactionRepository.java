@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -16,7 +17,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     @Query("""
         select t from Transaction t
         where t.user.id = :userId
-        and (:search is null or lower(coalesce(t.merchant,'')) like lower(concat('%', :search, '%')) or lower(coalesce(t.note,'')) like lower(concat('%', :search, '%')))
+        and (:search = '' or lower(coalesce(t.merchant,'')) like concat('%', lower(:search), '%') or lower(coalesce(t.note,'')) like concat('%', lower(:search), '%'))
         and (:fromDate is null or t.transactionDate >= :fromDate)
         and (:toDate is null or t.transactionDate <= :toDate)
         and (:accountId is null or t.account.id = :accountId or t.destinationAccount.id = :accountId)
@@ -26,5 +27,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     Page<Transaction> search(UUID userId, String search, LocalDate fromDate, LocalDate toDate, UUID accountId, UUID categoryId, Pageable pageable);
 
     List<Transaction> findTop5ByUserIdOrderByTransactionDateDescCreatedAtDesc(UUID userId);
+
+    @EntityGraph(attributePaths = {"category", "account", "destinationAccount"})
     List<Transaction> findByUserIdAndTransactionDateBetween(UUID userId, LocalDate start, LocalDate end);
 }

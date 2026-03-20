@@ -64,7 +64,11 @@ logging:
 app:
   cors:
     allowed-origins:
-      - ${APP_FRONTEND_URL:https://your-codespace-name-1455.app.github.dev}
+      - ${APP_FRONTEND_URL:http://localhost:1455}
+    allowed-origin-patterns:
+      - ${APP_CORS_ALLOWED_ORIGIN_PATTERN_1:https://*.app.github.dev}
+      - ${APP_CORS_ALLOWED_ORIGIN_PATTERN_2:http://localhost:*}
+      - ${APP_CORS_ALLOWED_ORIGIN_PATTERN_3:http://127.0.0.1:*}
   security:
     log-password-reset-tokens: ${APP_SECURITY_LOG_PASSWORD_RESET_TOKENS:false}
   scheduling:

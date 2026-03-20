@@ -78,6 +78,10 @@ public class SecurityConfig {
                 .map(String::trim)
                 .filter(origin -> !origin.isBlank())
                 .toList());
+        config.setAllowedOriginPatterns(appProperties.getCors().getAllowedOriginPatterns().stream()
+                .map(String::trim)
+                .filter(origin -> !origin.isBlank())
+                .toList());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Correlation-Id"));
         config.setExposedHeaders(List.of("X-Correlation-Id"));

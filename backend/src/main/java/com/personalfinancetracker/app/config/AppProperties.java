@@ -28,15 +28,7 @@ public class AppProperties {
     }
 
     public static class Cors {
-        private List<String> allowedOrigins = new ArrayList<>(List.of(
-                "http://localhost:1455",
-                "http://127.0.0.1:1455"
-        ));
-        private List<String> allowedOriginPatterns = new ArrayList<>(List.of(
-                "https://*.app.github.dev",
-                "http://localhost:*",
-                "http://127.0.0.1:*"
-        ));
+        private List<String> allowedOrigins = new ArrayList<>(List.of("http://localhost:5173"));
 
         public List<String> getAllowedOrigins() {
             return allowedOrigins;
@@ -44,14 +36,6 @@ public class AppProperties {
 
         public void setAllowedOrigins(List<String> allowedOrigins) {
             this.allowedOrigins = allowedOrigins;
-        }
-
-        public List<String> getAllowedOriginPatterns() {
-            return allowedOriginPatterns;
-        }
-
-        public void setAllowedOriginPatterns(List<String> allowedOriginPatterns) {
-            this.allowedOriginPatterns = allowedOriginPatterns;
         }
     }
 

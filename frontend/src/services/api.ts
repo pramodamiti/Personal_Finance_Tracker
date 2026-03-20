@@ -1,23 +1,7 @@
 import axios from 'axios';
 import { clearAuthSnapshot, getAuthSnapshot, replaceAuthSnapshot } from '../store/authStore';
 
-function resolveBaseUrl(): string {
-  const configured = import.meta.env.VITE_API_BASE_URL;
-  if (configured) {
-    return configured;
-  }
-
-  if (typeof window !== 'undefined') {
-    const { hostname } = window.location;
-    if (hostname.endsWith('.app.github.dev')) {
-      return `https://${hostname.replace(/-\d+\.app\.github\.dev$/, '-8080.app.github.dev')}/api`;
-    }
-  }
-
-  return 'http://localhost:8080/api';
-}
-
-const baseURL = resolveBaseUrl();
+const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'https://your-codespace-name-8080.app.github.dev/api';
 export const api = axios.create({ baseURL });
 
 api.interceptors.request.use((config) => {

@@ -25,14 +25,12 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AppUserDetailsService userDetailsService;
     private final AppProperties appProperties;
-    private final SecurityErrorHandlers securityErrorHandlers;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, AppUserDetailsService userDetailsService,
-                          AppProperties appProperties, SecurityErrorHandlers securityErrorHandlers) {
+                          AppProperties appProperties) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.userDetailsService = userDetailsService;
         this.appProperties = appProperties;
-        this.securityErrorHandlers = securityErrorHandlers;
     }
 
     @Bean
@@ -63,9 +61,6 @@ public class SecurityConfig {
                         .frameOptions(frameOptions -> frameOptions.deny())
                         .referrerPolicy(referrer -> referrer.policy(STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
                         .permissionsPolicy(policy -> policy.policy("camera=(), geolocation=(), microphone=()")))
-                .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint(securityErrorHandlers)
-                        .accessDeniedHandler(securityErrorHandlers))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/actuator/health", "/actuator/health/**", "/actuator/info",
@@ -80,10 +75,6 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(appProperties.getCors().getAllowedOrigins().stream()
-                .map(String::trim)
-                .filter(origin -> !origin.isBlank())
-                .toList());
-        config.setAllowedOriginPatterns(appProperties.getCors().getAllowedOriginPatterns().stream()
                 .map(String::trim)
                 .filter(origin -> !origin.isBlank())
                 .toList());

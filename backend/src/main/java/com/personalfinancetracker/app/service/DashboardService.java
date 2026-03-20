@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class DashboardService {
@@ -32,6 +33,7 @@ public class DashboardService {
         this.transactionService = transactionService;
     }
 
+    @Transactional(readOnly = true)
     public Map<String, Object> summary() {
         LocalDate start = LocalDate.now().withDayOfMonth(1);
         LocalDate end = LocalDate.now().withDayOfMonth(LocalDate.now().lengthOfMonth());

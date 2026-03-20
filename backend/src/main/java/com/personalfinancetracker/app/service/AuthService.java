@@ -81,9 +81,10 @@ public class AuthService {
         return issueTokens(user);
     }
 
+    @Transactional
     public AuthResponse refresh(RefreshRequest request) {
         RefreshToken token = refreshTokenRepository.findByToken(request.refreshToken()).filter(t -> !t.isRevoked() && t.getExpiresAt().isAfter(OffsetDateTime.now())).orElseThrow(() -> new ApiException("Invalid refresh token"));
-        return issueTokens(token.getUser());
+        return issueTokens(loadManagedUser(token.getUser().getId()));
     }
 
     @Transactional
@@ -132,6 +133,10 @@ public class AuthService {
         refresh.setExpiresAt(OffsetDateTime.now().plusNanos(refreshExpiration * 1_000_000));
         refreshTokenRepository.save(refresh);
         return new AuthResponse(access, refresh.getToken(), mapper.toUser(user));
+    }
+
+    private User loadManagedUser(UUID userId) {
+        return userRepository.findById(userId).orElseThrow(() -> new ApiException("User not found"));
     }
 
     private void seedDefaultCategories(User user) {

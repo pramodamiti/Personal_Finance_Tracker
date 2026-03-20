@@ -37,14 +37,17 @@ public class TransactionService {
         this.auditService = auditService;
     }
 
+    @Transactional(readOnly = true)
     public Object list(String search, java.time.LocalDate fromDate, java.time.LocalDate toDate, UUID accountId, UUID categoryId, int page, int size) {
-        return transactionRepository.search(authFacade.currentUser().getId(), emptyToNull(search), fromDate, toDate, accountId, categoryId, PageRequest.of(page, size)).map(mapper::toTransaction);
+        return transactionRepository.search(authFacade.currentUser().getId(), normalizeSearch(search), fromDate, toDate, accountId, categoryId, PageRequest.of(page, size)).map(mapper::toTransaction);
     }
 
+    @Transactional(readOnly = true)
     public List<TransactionResponse> recent() {
         return transactionRepository.findTop5ByUserIdOrderByTransactionDateDescCreatedAtDesc(authFacade.currentUser().getId()).stream().map(mapper::toTransaction).toList();
     }
 
+    @Transactional(readOnly = true)
     public TransactionResponse get(UUID id) { return mapper.toTransaction(findEntity(id)); }
 
     @Transactional
@@ -93,9 +96,10 @@ public class TransactionService {
         return transaction;
     }
 
+    @Transactional(readOnly = true)
     public Transaction findEntity(UUID id) {
         return transactionRepository.findByIdAndUserId(id, authFacade.currentUser().getId()).orElseThrow(() -> new ApiException("Transaction not found"));
     }
 
-    private String emptyToNull(String value) { return value == null || value.isBlank() ? null : value; }
+    private String normalizeSearch(String value) { return value == null ? "" : value.trim(); }
 }

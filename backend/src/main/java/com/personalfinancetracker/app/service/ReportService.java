@@ -10,6 +10,7 @@ import java.time.YearMonth;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ReportService {
@@ -22,6 +23,7 @@ public class ReportService {
         this.authFacade = authFacade;
     }
 
+    @Transactional(readOnly = true)
     public List<Map<String, Object>> categorySpend(LocalDate from, LocalDate to) {
 
         return filtered(from, to).stream()
@@ -43,6 +45,7 @@ public class ReportService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<Map<String, Object>> incomeVsExpense(LocalDate from, LocalDate to) {
 
         List<Map<String, Object>> result = new ArrayList<>();
@@ -73,6 +76,7 @@ public class ReportService {
         return result;
     }
 
+    @Transactional(readOnly = true)
     public List<Map<String, Object>> accountBalanceTrend(LocalDate from, LocalDate to) {
 
         if (authFacade.currentUser() == null) {
@@ -98,6 +102,7 @@ public class ReportService {
         return new ArrayList<>();
     }
 
+    @Transactional(readOnly = true)
     public ByteArrayInputStream exportCsv(LocalDate from, LocalDate to) {
 
         String header = "date,type,amount,merchant,note\n";

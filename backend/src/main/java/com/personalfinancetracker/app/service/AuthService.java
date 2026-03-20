@@ -18,6 +18,8 @@ import io.github.bucket4j.Bucket;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -27,6 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
+
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
@@ -37,12 +41,14 @@ public class AuthService {
     private final AppMapper mapper;
     private final RateLimitConfig rateLimitConfig;
     private final long refreshExpiration;
+    private final boolean logPasswordResetTokens;
 
     public AuthService(UserRepository userRepository, RefreshTokenRepository refreshTokenRepository,
                        PasswordResetTokenRepository passwordResetTokenRepository, CategoryRepository categoryRepository,
                        PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, JwtService jwtService,
                        AppMapper mapper, RateLimitConfig rateLimitConfig,
-                       @Value("${REFRESH_TOKEN_EXPIRATION:1209600000}") long refreshExpiration) {
+                       @Value("${REFRESH_TOKEN_EXPIRATION:1209600000}") long refreshExpiration,
+                       @Value("${app.security.log-password-reset-tokens:false}") boolean logPasswordResetTokens) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
@@ -53,6 +59,7 @@ public class AuthService {
         this.mapper = mapper;
         this.rateLimitConfig = rateLimitConfig;
         this.refreshExpiration = refreshExpiration;
+        this.logPasswordResetTokens = logPasswordResetTokens;
     }
 
     @Transactional
@@ -93,7 +100,11 @@ public class AuthService {
             token.setToken(UUID.randomUUID().toString());
             token.setExpiresAt(OffsetDateTime.now().plusHours(2));
             passwordResetTokenRepository.save(token);
-            System.out.println("Password reset token for " + user.getEmail() + ": " + token.getToken());
+            if (logPasswordResetTokens) {
+                log.warn("Password reset token generated for {}: {}", user.getEmail(), token.getToken());
+            } else {
+                log.info("Password reset token generated for {}", user.getEmail());
+            }
         });
     }
 

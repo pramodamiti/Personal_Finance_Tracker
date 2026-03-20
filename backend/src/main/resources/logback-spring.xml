@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="personal-finance-tracker-backend"/>
+    <springProperty scope="context" name="appEnvironment" source="spring.profiles.active" defaultValue="local"/>
+
+    <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+                <version/>
+                <pattern>
+                    <pattern>
+                        {
+                          "service":"${appName}",
+                          "environment":"${appEnvironment}",
+                          "level":"%level",
+                          "logger":"%logger",
+                          "thread":"%thread"
+                        }
+                    </pattern>
+                </pattern>
+                <mdc/>
+                <message/>
+                <arguments/>
+                <stackTrace/>
+            </providers>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="JSON_CONSOLE"/>
+    </root>
+</configuration>

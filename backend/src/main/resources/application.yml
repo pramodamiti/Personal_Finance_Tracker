@@ -1,9 +1,12 @@
 spring:
+  application:
+    name: personal-finance-tracker-backend
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/personal_finance_tracker}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: validate
     properties:
@@ -17,8 +20,56 @@ spring:
   jackson:
     serialization:
       write-dates-as-timestamps: false
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
 server:
   port: 8080
+  shutdown: graceful
+  forward-headers-strategy: framework
+  compression:
+    enabled: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      environment: ${SPRING_PROFILES_ACTIVE:local}
+  tracing:
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
+springdoc:
+  swagger-ui:
+    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:true}
+  api-docs:
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:true}
 logging:
   level:
+    root: INFO
     org.springframework.security: INFO
+    org.springframework.web: INFO
+    com.personalfinancetracker: INFO
+app:
+  cors:
+    allowed-origins:
+      - ${APP_FRONTEND_URL:http://localhost:5173}
+  security:
+    log-password-reset-tokens: ${APP_SECURITY_LOG_PASSWORD_RESET_TOKENS:false}
+  scheduling:
+    recurring-cron: ${APP_SCHEDULING_RECURRING_CRON:0 0 * * * *}
+    lock-at-most-for: ${APP_SCHEDULING_LOCK_AT_MOST_FOR:PT10M}
+    lock-at-least-for: ${APP_SCHEDULING_LOCK_AT_LEAST_FOR:PT30S}
+  observability:
+    correlation-header: ${APP_CORRELATION_HEADER:X-Correlation-Id}

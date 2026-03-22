@@ -17,7 +17,10 @@ import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -83,11 +86,10 @@ public class ForecastService {
                 historyStart,
                 today);
 
-        BigDecimal dailyIncomeAverage = averageDailyAmount(historical, TransactionType.INCOME, historyStart, today);
         BigDecimal dailyExpenseAverage = averageDailyAmount(historical, TransactionType.EXPENSE, historyStart, today);
+        Map<Integer, BigDecimal> likelyIncomeByDayOfMonth = inferredMonthlyIncomeByDay(historical);
 
         if (historical.size() < 5) {
-            dailyIncomeAverage = dailyIncomeAverage.max(BigDecimal.ZERO);
             dailyExpenseAverage = dailyExpenseAverage.max(BigDecimal.ZERO);
         }
 
@@ -102,10 +104,18 @@ public class ForecastService {
         BigDecimal expectedExpenses = BigDecimal.ZERO;
         List<ForecastDayResponse> dailyPoints = new ArrayList<>();
 
-        for (LocalDate cursor = today; !cursor.isAfter(monthEnd); cursor = cursor.plusDays(1)) {
+        dailyPoints.add(new ForecastDayResponse(
+                today,
+                currentBalance.setScale(2, RoundingMode.HALF_UP),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO));
+
+        for (LocalDate cursor = today.plusDays(1); !cursor.isAfter(monthEnd); cursor = cursor.plusDays(1)) {
             BigDecimal recurringIncome = recurringAmountForDate(recurringTransactions, cursor, TransactionType.INCOME);
             BigDecimal recurringExpense = recurringAmountForDate(recurringTransactions, cursor, TransactionType.EXPENSE);
-            BigDecimal inferredIncome = recurringIncome.compareTo(BigDecimal.ZERO) == 0 ? dailyIncomeAverage : BigDecimal.ZERO;
+            BigDecimal inferredIncome = recurringIncome.compareTo(BigDecimal.ZERO) == 0
+                    ? likelyIncomeByDayOfMonth.getOrDefault(cursor.getDayOfMonth(), BigDecimal.ZERO)
+                    : BigDecimal.ZERO;
             BigDecimal inferredExpense = recurringExpense.compareTo(BigDecimal.ZERO) == 0 ? dailyExpenseAverage : BigDecimal.ZERO;
             BigDecimal dayIncome = recurringIncome.add(inferredIncome);
             BigDecimal dayExpense = recurringExpense.add(inferredExpense);
@@ -118,6 +128,29 @@ public class ForecastService {
         }
 
         return new ForecastSnapshot(currentBalance, projectedBalance, expectedIncome, expectedExpenses, upcomingExpenses, dailyPoints);
+    }
+
+    private Map<Integer, BigDecimal> inferredMonthlyIncomeByDay(List<Transaction> transactions) {
+        return transactions.stream()
+                .filter(transaction -> transaction.getType() == TransactionType.INCOME)
+                .collect(Collectors.groupingBy(
+                        transaction -> transaction.getTransactionDate().getDayOfMonth(),
+                        LinkedHashMap::new,
+                        Collectors.toList()))
+                .entrySet()
+                .stream()
+                .filter(entry -> entry.getValue().stream()
+                        .map(transaction -> YearMonth.from(transaction.getTransactionDate()))
+                        .distinct()
+                        .count() >= 2)
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> entry.getValue().stream()
+                                .map(Transaction::getAmount)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                                .divide(BigDecimal.valueOf(entry.getValue().size()), 2, RoundingMode.HALF_UP),
+                        (left, right) -> right,
+                        LinkedHashMap::new));
     }
 
     private BigDecimal recurringAmountForDate(List<RecurringTransaction> recurringTransactions, LocalDate date, TransactionType type) {

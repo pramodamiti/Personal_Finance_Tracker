@@ -1,13 +1,15 @@
+import { useRef } from 'react';
 import { NavLink, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
-import { BarChart, Bar, CartesianGrid, LineChart, Line, PieChart, Pie, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
+import { BarChart, Bar, CartesianGrid, Legend, LineChart, Line, PieChart, Pie, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
 import { Navbar, type NavItem } from '../components/Navbar';
 import { Dashboard } from './Dashboard';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { extractErrorMessage, formatCurrency } from '../utils/ui';
+import { downloadReportsPdf } from '../utils/reportExport';
 
 const nav: NavItem[] = [
   { href: '/', label: 'Dashboard', mobileLabel: 'Home' },
@@ -112,6 +114,41 @@ function describeRule(rule: any) {
   const action = humanize(String(rule?.action?.type ?? ''));
   const actionValue = String(rule?.action?.value ?? '');
   return `If ${field} ${operator} ${value}, then ${action}${actionValue ? `: ${actionValue}` : ''}`;
+}
+
+function formatMonthLabel(value: unknown) {
+  const rawValue = String(value ?? '');
+  if (!rawValue) {
+    return '';
+  }
+
+  if (/^\d{4}-\d{2}$/.test(rawValue)) {
+    const [year, month] = rawValue.split('-').map(Number);
+    return new Intl.DateTimeFormat('en-IN', {
+      month: 'short',
+      year: '2-digit'
+    }).format(new Date(year, month - 1, 1));
+  }
+
+  return rawValue;
+}
+
+function formatCompactCurrency(value: unknown) {
+  const amount = Number(value ?? 0);
+  return new Intl.NumberFormat('en-IN', {
+    notation: 'compact',
+    maximumFractionDigits: 1
+  }).format(Number.isFinite(amount) ? amount : 0);
+}
+
+function formatPercentLabel(value: unknown) {
+  const amount = Number(value ?? 0);
+  return `${Number.isFinite(amount) ? amount.toFixed(0) : '0'}%`;
+}
+
+function truncateLabel(value: unknown, limit = 12) {
+  const label = String(value ?? '');
+  return label.length > limit ? `${label.slice(0, limit - 1)}…` : label;
 }
 
 function renderResourceCell(row: any, field: Field) {
@@ -573,10 +610,70 @@ function DashboardPage() {
 function ReportsPage() {
   const from = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0,10);
   const to = new Date().toISOString().slice(0,10);
+  const categoryChartRef = useRef<HTMLDivElement | null>(null);
+  const trendChartRef = useRef<HTMLDivElement | null>(null);
+  const savingsChartRef = useRef<HTMLDivElement | null>(null);
+  const netWorthChartRef = useRef<HTMLDivElement | null>(null);
   const category = useQuery({ queryKey: ['report-category'], queryFn: () => fetcher(`/reports/category-spend?from=${from}&to=${to}`) });
   const trend = useQuery({ queryKey: ['report-trend'], queryFn: () => fetcher(`/reports/income-vs-expense?from=${from}&to=${to}`) });
   const advancedTrends = useQuery({ queryKey: ['advanced-trends'], queryFn: () => fetcher(`/reports/trends?from=${new Date(new Date().getFullYear(), new Date().getMonth() - 5, 1).toISOString().slice(0,10)}&to=${to}`) });
   const netWorth = useQuery({ queryKey: ['net-worth'], queryFn: () => fetcher('/reports/net-worth') });
+  const categoryData = (Array.isArray(category.data) ? category.data : []).slice().sort((left: any, right: any) => Number(right.amount ?? 0) - Number(left.amount ?? 0));
+  const trendData = Array.isArray(trend.data) ? trend.data : [];
+  const advancedTrendData = Array.isArray(advancedTrends.data) ? advancedTrends.data : [];
+  const netWorthData = Array.isArray(netWorth.data) ? netWorth.data : [];
+  const totalCategorySpend = categoryData.reduce((sum: number, row: any) => sum + Number(row.amount ?? 0), 0);
+  const latestTrend = trendData[trendData.length - 1];
+  const latestSavingsPoint = advancedTrendData[advancedTrendData.length - 1];
+  const bestSavingsPoint = advancedTrendData.reduce((best: any, point: any) => {
+    if (!best || Number(point.savingsRate ?? 0) > Number(best.savingsRate ?? 0)) {
+      return point;
+    }
+    return best;
+  }, null);
+  const latestNetWorth = netWorthData[netWorthData.length - 1];
+  const previousNetWorth = netWorthData[netWorthData.length - 2];
+  const netWorthChange = latestNetWorth && previousNetWorth
+    ? Number(latestNetWorth.netWorth ?? 0) - Number(previousNetWorth.netWorth ?? 0)
+    : null;
+  const categoryDetails = [
+    `Total expense shown in this range: ${formatCurrency(totalCategorySpend)}.`,
+    categoryData[0]
+      ? `Top category is ${categoryData[0].category} at ${formatCurrency(categoryData[0].amount)}.`
+      : 'No category spend data is available yet.',
+    `Categories included in the chart: ${categoryData.length}.`
+  ];
+  const trendDetails = [
+    latestTrend
+      ? `Latest month ${formatMonthLabel(latestTrend.month)} shows income of ${formatCurrency(latestTrend.income)} and expense of ${formatCurrency(latestTrend.expense)}.`
+      : 'No monthly income or expense data is available yet.',
+    latestTrend
+      ? `Net movement for the latest month is ${formatCurrency(Number(latestTrend.income ?? 0) - Number(latestTrend.expense ?? 0))}.`
+      : 'Net movement will appear once monthly data is available.',
+    `Months included in this view: ${trendData.length}.`
+  ];
+  const savingsDetails = [
+    latestSavingsPoint
+      ? `Latest savings rate is ${formatPercentLabel(latestSavingsPoint.savingsRate)} for ${formatMonthLabel(latestSavingsPoint.period)}.`
+      : 'No savings trend data is available yet.',
+    bestSavingsPoint
+      ? `Best savings month in this range is ${formatMonthLabel(bestSavingsPoint.period)} at ${formatPercentLabel(bestSavingsPoint.savingsRate)}.`
+      : 'A best savings month will appear once enough data exists.',
+    latestSavingsPoint?.topCategory
+      ? `Top spend category in the latest point is ${latestSavingsPoint.topCategory} at ${formatCurrency(latestSavingsPoint.topCategoryAmount)}.`
+      : 'No top spend category is available for the latest trend point.'
+  ];
+  const netWorthDetails = [
+    latestNetWorth
+      ? `Latest estimated net worth is ${formatCurrency(latestNetWorth.netWorth)} in ${formatMonthLabel(latestNetWorth.month)}.`
+      : 'No net worth data is available yet.',
+    netWorthChange !== null
+      ? `Change from the previous month is ${formatCurrency(netWorthChange)}.`
+      : 'Net worth change will appear after at least two monthly points exist.',
+    latestNetWorth
+      ? `Current assets baseline is ${formatCurrency(latestNetWorth.assets)}.`
+      : 'Current assets will appear once account data is available.'
+  ];
   const exportMutation = useMutation({
     mutationFn: async () => {
       const response = await api.get('/reports/export/csv', {
@@ -589,9 +686,131 @@ function ReportsPage() {
       triggerBlobDownload(blob, `transactions-${from}-to-${to}.csv`);
     }
   });
-  const errorMessage = extractErrorMessage(category.error) || extractErrorMessage(trend.error) || extractErrorMessage(advancedTrends.error) || extractErrorMessage(netWorth.error) || extractErrorMessage(exportMutation.error);
+  const pdfExportMutation = useMutation({
+    mutationFn: async () =>
+      downloadReportsPdf({
+        from,
+        to,
+        categoryData,
+        trendData,
+        advancedTrendData,
+        netWorthData,
+        charts: [
+          {
+            title: 'Category Spend',
+            description: "Highest expense buckets for the selected period.",
+            details: categoryDetails,
+            element: categoryChartRef.current
+          },
+          {
+            title: 'Income vs Expense',
+            description: 'Monthly inflow and outflow comparison.',
+            details: trendDetails,
+            element: trendChartRef.current
+          },
+          {
+            title: 'Savings Rate Trend',
+            description: 'Monthly savings rate movement across the selected period.',
+            details: savingsDetails,
+            element: savingsChartRef.current
+          },
+          {
+            title: 'Net Worth Tracking',
+            description: 'Estimated balance trajectory over time.',
+            details: netWorthDetails,
+            element: netWorthChartRef.current
+          }
+        ]
+      })
+  });
+  const errorMessage = extractErrorMessage(category.error) || extractErrorMessage(trend.error) || extractErrorMessage(advancedTrends.error) || extractErrorMessage(netWorth.error) || extractErrorMessage(exportMutation.error) || extractErrorMessage(pdfExportMutation.error);
 
-  return <div className="space-y-6"><PageHeader eyebrow="Advanced Reporting" title="Spending, savings, and net worth over time." description="Compare category trends, savings rate, and balance movement with simpler visuals." actions={<button className="btn-primary" onClick={() => exportMutation.mutate()} disabled={exportMutation.isPending}>{exportMutation.isPending ? 'Preparing CSV...' : 'Download CSV export'}</button>} />{errorMessage && <ErrorBanner message={errorMessage} />}<div className="grid gap-6 lg:grid-cols-2"><div className="card h-80 chart-panel"><SectionTitle title="Category spend" description="This month's highest expense buckets" /><ResponsiveContainer><BarChart data={category.data || []}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="category" /><YAxis /><Tooltip formatter={(value) => formatCurrency(value)} /><Bar dataKey="amount" fill="#0f766e" radius={[12, 12, 0, 0]} /></BarChart></ResponsiveContainer></div><div className="card h-80 chart-panel"><SectionTitle title="Income vs expense" description="Monthly inflow versus outflow" /><ResponsiveContainer><LineChart data={trend.data || []}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="month" /><YAxis /><Tooltip formatter={(value) => formatCurrency(value)} /><Line dataKey="income" stroke="#10b981" strokeWidth={3} /><Line dataKey="expense" stroke="#f97316" strokeWidth={3} /></LineChart></ResponsiveContainer></div></div><div className="grid gap-6 lg:grid-cols-2"><div className="card h-80 chart-panel"><SectionTitle title="Savings rate trend" description="Keep the direction obvious" /><ResponsiveContainer><LineChart data={advancedTrends.data || []}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="period" /><YAxis /><Tooltip /><Line dataKey="savingsRate" stroke="#0891b2" strokeWidth={3} /></LineChart></ResponsiveContainer></div><div className="card h-80 chart-panel"><SectionTitle title="Net worth tracking" description="Estimated balance trajectory over time" /><ResponsiveContainer><LineChart data={netWorth.data || []}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="month" /><YAxis /><Tooltip formatter={(value) => formatCurrency(value)} /><Line dataKey="netWorth" stroke="#7c3aed" strokeWidth={3} /></LineChart></ResponsiveContainer></div></div></div>;
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Advanced Reporting"
+        title="Spending, savings, and net worth over time."
+        description="Compare category trends, savings rate, and balance movement with simpler visuals."
+        actions={
+          <div className="flex flex-wrap gap-3">
+            <button className="btn-secondary" onClick={() => pdfExportMutation.mutate()} disabled={pdfExportMutation.isPending}>
+              {pdfExportMutation.isPending ? 'Preparing PDF...' : 'Download PDF report'}
+            </button>
+            <button className="btn-primary" onClick={() => exportMutation.mutate()} disabled={exportMutation.isPending}>
+              {exportMutation.isPending ? 'Preparing CSV...' : 'Download CSV export'}
+            </button>
+          </div>
+        }
+      />
+      {errorMessage && <ErrorBanner message={errorMessage} />}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="card h-[26rem] chart-panel">
+          <SectionTitle title="Category spend" description="Top expense buckets in the selected period" />
+          <div ref={categoryChartRef} className="h-[20rem] w-full">
+            <ResponsiveContainer>
+              <BarChart data={categoryData.slice(0, 6)} layout="vertical" margin={{ top: 8, right: 18, left: 8, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" tickFormatter={formatCompactCurrency} tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                <YAxis dataKey="category" type="category" width={110} tickFormatter={(value) => truncateLabel(value, 14)} tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Bar dataKey="amount" fill="#0f766e" radius={[0, 12, 12, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <div className="card h-[26rem] chart-panel">
+          <SectionTitle title="Income vs expense" description="Monthly inflow versus outflow with clearer scaling" />
+          <div ref={trendChartRef} className="h-[20rem] w-full">
+            <ResponsiveContainer>
+              <LineChart data={trendData} margin={{ top: 8, right: 12, left: 6, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" tickFormatter={formatMonthLabel} minTickGap={24} tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                <YAxis yAxisId="income" tickFormatter={formatCompactCurrency} width={64} tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                <YAxis yAxisId="expense" orientation="right" tickFormatter={formatCompactCurrency} width={64} tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                <Tooltip
+                  labelFormatter={formatMonthLabel}
+                  formatter={(value, name) => [formatCurrency(value), name === 'income' ? 'Income' : 'Expense']}
+                />
+                <Legend />
+                <Line yAxisId="income" type="monotone" dataKey="income" name="Income" stroke="#10b981" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                <Line yAxisId="expense" type="monotone" dataKey="expense" name="Expense" stroke="#f97316" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="card h-[26rem] chart-panel">
+          <SectionTitle title="Savings rate trend" description="A cleaner view of monthly saving momentum" />
+          <div ref={savingsChartRef} className="h-[20rem] w-full">
+            <ResponsiveContainer>
+              <LineChart data={advancedTrendData} margin={{ top: 8, right: 12, left: 6, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="period" tickFormatter={formatMonthLabel} minTickGap={24} tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                <YAxis domain={[0, 100]} tickFormatter={formatPercentLabel} width={54} tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                <Tooltip labelFormatter={formatMonthLabel} formatter={(value) => formatPercentLabel(value)} />
+                <Line type="monotone" dataKey="savingsRate" stroke="#0891b2" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <div className="card h-[26rem] chart-panel">
+          <SectionTitle title="Net worth tracking" description="Estimated balance trajectory with clearer spacing" />
+          <div ref={netWorthChartRef} className="h-[20rem] w-full">
+            <ResponsiveContainer>
+              <LineChart data={netWorthData} margin={{ top: 8, right: 12, left: 6, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" tickFormatter={formatMonthLabel} minTickGap={24} tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                <YAxis tickFormatter={formatCompactCurrency} width={64} tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                <Tooltip labelFormatter={formatMonthLabel} formatter={(value) => formatCurrency(value)} />
+                <Line type="monotone" dataKey="netWorth" stroke="#7c3aed" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function InsightsPage() {

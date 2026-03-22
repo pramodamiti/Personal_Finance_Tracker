@@ -4,9 +4,22 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { BarChart, Bar, CartesianGrid, LineChart, Line, PieChart, Pie, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
+import { Navbar, type NavItem } from '../components/Navbar';
+import { Dashboard } from './Dashboard';
+import { ErrorBanner } from '../components/ErrorBanner';
+import { extractErrorMessage, formatCurrency } from '../utils/ui';
 
-const nav = [
-  ['/', 'Dashboard'], ['/transactions', 'Transactions'], ['/budgets', 'Budgets'], ['/goals', 'Goals'], ['/reports', 'Reports'], ['/recurring', 'Recurring'], ['/accounts', 'Accounts'], ['/settings', 'Settings']
+const nav: NavItem[] = [
+  { href: '/', label: 'Dashboard', mobileLabel: 'Home' },
+  { href: '/transactions', label: 'Transactions', mobileLabel: 'Txns' },
+  { href: '/budgets', label: 'Budgets', mobileLabel: 'Budgets' },
+  { href: '/goals', label: 'Goals', mobileLabel: 'Goals' },
+  { href: '/reports', label: 'Reports', mobileLabel: 'Reports' },
+  { href: '/insights', label: 'Insights', mobileLabel: 'Insights' },
+  { href: '/rules', label: 'Rules', mobileLabel: 'Rules' },
+  { href: '/recurring', label: 'Recurring', mobileLabel: 'Repeat' },
+  { href: '/accounts', label: 'Accounts', mobileLabel: 'Accounts' },
+  { href: '/settings', label: 'Settings', mobileLabel: 'Settings' }
 ];
 
 const fetcher = (url: string) => api.get(url).then((r) => r.data);
@@ -31,11 +44,40 @@ type BudgetFormValues = {
   budgetMonth: string;
   budgetYear: string;
 };
+type RuleFormValues = {
+  name: string;
+  priority: string;
+  conditionField: string;
+  conditionOperator: string;
+  conditionValue: string;
+  actionType: string;
+  actionValue: string;
+  isActive: string;
+};
 
 const transactionTypeOptions = ['EXPENSE', 'INCOME', 'TRANSFER'].map(toOption);
 const accountTypeOptions = ['BANK_ACCOUNT', 'CREDIT_CARD', 'CASH_WALLET', 'SAVINGS_ACCOUNT'].map(toOption);
 const recurringFrequencyOptions = ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'].map(toOption);
 const paymentMethodOptions = ['CASH', 'CARD', 'BANK_TRANSFER', 'MOBILE_WALLET', 'OTHER'].map(toOption);
+const ruleFieldOptions = [
+  { value: 'merchant', label: 'Merchant' },
+  { value: 'amount', label: 'Amount' },
+  { value: 'categoryId', label: 'Category' },
+  { value: 'type', label: 'Type' },
+  { value: 'note', label: 'Note' }
+];
+const ruleOperatorOptions = [
+  { value: 'equals', label: 'Equals' },
+  { value: 'contains', label: 'Contains' },
+  { value: 'greater_than', label: 'Greater Than' },
+  { value: 'less_than', label: 'Less Than' }
+];
+const ruleActionOptions = [
+  { value: 'set_category', label: 'Set Category' },
+  { value: 'add_tag', label: 'Add Tag' },
+  { value: 'set_note', label: 'Set Note' },
+  { value: 'trigger_alert', label: 'Trigger Alert' }
+];
 const now = new Date();
 const currentMonth = now.getMonth() + 1;
 const currentYear = now.getFullYear();
@@ -52,26 +94,6 @@ function humanize(value: string) {
     .join(' ');
 }
 
-function extractErrorMessage(error: any): string | undefined {
-  const data = error?.response?.data;
-
-  if (typeof data?.message === 'string' && data.message.trim()) {
-    return data.message;
-  }
-
-  if (data?.errors && typeof data.errors === 'object') {
-    return Object.entries(data.errors)
-      .map(([field, message]) => `${field}: ${message}`)
-      .join(', ');
-  }
-
-  if (typeof error?.message === 'string' && error.message.trim()) {
-    return error.message;
-  }
-
-  return undefined;
-}
-
 function triggerBlobDownload(blob: Blob, fileName: string) {
   const objectUrl = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
@@ -81,6 +103,23 @@ function triggerBlobDownload(blob: Blob, fileName: string) {
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(objectUrl);
+}
+
+function describeRule(rule: any) {
+  const field = humanize(String(rule?.condition?.field ?? ''));
+  const operator = humanize(String(rule?.condition?.operator ?? ''));
+  const value = String(rule?.condition?.value ?? '');
+  const action = humanize(String(rule?.action?.type ?? ''));
+  const actionValue = String(rule?.action?.value ?? '');
+  return `If ${field} ${operator} ${value}, then ${action}${actionValue ? `: ${actionValue}` : ''}`;
+}
+
+function renderResourceCell(row: any, field: Field) {
+  const value = row?.[field.name];
+  if (field.type === 'number') {
+    return formatCurrency(value);
+  }
+  return String(value ?? '');
 }
 
 function FieldInput({ field, register }: { field: Field; register: any }) {
@@ -100,17 +139,71 @@ function FieldInput({ field, register }: { field: Field; register: any }) {
   return <input type={field.type || 'text'} className="input" {...register(field.name)} />;
 }
 
+function PageHeader({
+  eyebrow,
+  title,
+  description,
+  actions
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  actions?: React.ReactNode;
+}) {
+  return (
+    <div className="hero-panel">
+      <div className="hero-copy">
+        <div className="kicker">{eyebrow}</div>
+        <h1 className="hero-title">{title}</h1>
+        <p className="hero-description">{description}</p>
+      </div>
+      {actions ? <div className="hero-actions">{actions}</div> : null}
+    </div>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  meta,
+  tone = 'default'
+}: {
+  label: string;
+  value: string;
+  meta: string;
+  tone?: 'default' | 'warm' | 'cool' | 'emerald';
+}) {
+  return (
+    <div className={`metric-card metric-${tone}`}>
+      <div className="metric-label">{label}</div>
+      <div className="metric-value">{value}</div>
+      <div className="metric-meta">{meta}</div>
+    </div>
+  );
+}
+
+function SectionTitle({ title, description }: { title: string; description?: string }) {
+  return (
+    <div className="mb-4">
+      <h2 className="text-xl font-semibold tracking-tight text-slate-950 dark:text-white">{title}</h2>
+      {description ? <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p> : null}
+    </div>
+  );
+}
+
 function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuthStore();
   return (
-    <div className="min-h-screen md:grid md:grid-cols-[240px_1fr]">
-      <aside className="bg-primary p-6 text-white">
-        <div className="mb-8 text-2xl font-bold">Finance Tracker</div>
-        <nav className="space-y-2">{nav.map(([href, label]) => <NavLink key={href} to={href} className="block rounded-xl px-3 py-2 hover:bg-white/10">{label}</NavLink>)}</nav>
-        <div className="mt-10 rounded-xl bg-white/10 p-4 text-sm">Signed in as {user?.displayName || 'User'}</div>
-        <button className="btn-secondary mt-4 w-full" onClick={logout}>Logout</button>
-      </aside>
-      <main className="p-4 md:p-8">{children}</main>
+    <div className="app-shell">
+      <div className="ambient ambient-one" />
+      <div className="ambient ambient-two" />
+      <div className="ambient ambient-three" />
+      <div className="layout-grid">
+        <Navbar items={nav} user={user} onLogout={logout} />
+        <main className="app-main">
+          <div className="content-wrap">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }
@@ -119,6 +212,11 @@ function AuthPage({ mode }: { mode: 'login' | 'register' | 'forgot' }) {
   const navigate = useNavigate();
   const { register, handleSubmit } = useForm<Record<string, string>>();
   const setAuth = useAuthStore((s) => s.setAuth);
+  const authLinks = [
+    { key: 'login', label: 'Login', to: '/login' },
+    { key: 'register', label: 'Create account', to: '/register' },
+    { key: 'forgot', label: 'Forgot password', to: '/forgot-password' }
+  ].filter((link) => link.key !== mode);
   const mutation = useMutation({
     mutationFn: (payload: any) => api.post(`/auth/${mode === 'register' ? 'register' : mode === 'forgot' ? 'forgot-password' : 'login'}`, payload).then((r) => r.data),
     onSuccess: (data) => {
@@ -128,7 +226,65 @@ function AuthPage({ mode }: { mode: 'login' | 'register' | 'forgot' }) {
   });
   const errorMessage = extractErrorMessage(mutation.error);
 
-  return <div className="mx-auto mt-16 max-w-md card"><h1 className="mb-6 text-2xl font-semibold capitalize">{mode === 'forgot' ? 'Forgot password' : mode}</h1><form className="space-y-4" onSubmit={handleSubmit((values) => mutation.mutate(values))}>{mode !== 'forgot' && mode !== 'login' && <div><label className="label">Display name</label><input className="input" {...register('displayName')} /></div>}<div><label className="label">Email</label><input className="input" {...register('email')} /></div>{mode !== 'forgot' && <div><label className="label">Password</label><input type="password" className="input" {...register('password')} /></div>}{errorMessage && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{errorMessage}</div>}<button className="btn-primary w-full">Submit</button></form><div className="mt-4 flex flex-wrap gap-3 text-sm"><NavLink className="text-primary underline" to="/login">Login</NavLink><NavLink className="text-primary underline" to="/register">Create account</NavLink><NavLink className="text-primary underline" to="/forgot-password">Forgot password</NavLink></div></div>;
+  return (
+    <div className="min-h-screen overflow-hidden px-4 py-10">
+      <div className="ambient ambient-one" />
+      <div className="ambient ambient-two" />
+      <div className="auth-shell">
+        <div className="auth-showcase">
+          <div className="brand-pill">Personal Finance Tracker</div>
+          <h1 className="mt-5 text-3xl font-semibold leading-tight text-slate-950 dark:text-white sm:text-4xl">
+            Keep everyday money decisions simple and clear.
+          </h1>
+          <p className="mt-4 max-w-xl text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base">
+            Track balances, understand future cash flow, and stay on top of budgets without the interface getting in your way.
+          </p>
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            <MetricCard label="Forecasting" value="Daily" meta="Month-end balance view" tone="cool" />
+            <MetricCard label="Health Score" value="0-100" meta="Savings and cash buffer" tone="emerald" />
+            <MetricCard label="Automation" value="Rules" meta="Categories, tags, alerts" tone="warm" />
+          </div>
+        </div>
+        <div className="auth-card">
+          <div className="kicker">
+            {mode === 'forgot' ? 'Recovery' : mode === 'register' ? 'Create account' : 'Sign in'}
+          </div>
+          <h2 className="mt-3 text-2xl font-semibold capitalize text-slate-950 dark:text-white">
+            {mode === 'forgot' ? 'Forgot password' : mode === 'register' ? 'Create your account' : 'Login'}
+          </h2>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            {mode === 'register'
+              ? 'Set up your account and start tracking money in one place.'
+              : mode === 'forgot'
+                ? 'Enter your email and we will send reset instructions.'
+                : 'Use your email and password to continue.'}
+          </p>
+          <form className="mt-8 space-y-4" onSubmit={handleSubmit((values) => mutation.mutate(values))}>
+            {mode !== 'forgot' && mode !== 'login' && <div><label className="label">Display name</label><input className="input" {...register('displayName')} /></div>}
+            <div><label className="label">Email</label><input className="input" {...register('email')} /></div>
+            {mode !== 'forgot' && <div><label className="label">Password</label><input type="password" className="input" {...register('password')} /></div>}
+            {errorMessage && <ErrorBanner message={errorMessage} />}
+            <button className="btn-primary w-full" disabled={mutation.isPending}>
+              {mutation.isPending
+                ? 'Please wait...'
+                : mode === 'forgot'
+                  ? 'Send reset instructions'
+                  : mode === 'register'
+                    ? 'Create account'
+                    : 'Login'}
+            </button>
+          </form>
+          <div className="mt-5 flex flex-wrap gap-3 text-sm">
+            {authLinks.map((link) => (
+              <NavLink key={link.key} className="text-primary underline-offset-4 hover:underline" to={link.to}>
+                {link.label}
+              </NavLink>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function ResourcePage({ title, endpoint, fields }: { title: string; endpoint: string; fields: Field[] }) {
@@ -139,7 +295,7 @@ function ResourcePage({ title, endpoint, fields }: { title: string; endpoint: st
   const rows = Array.isArray(query.data) ? query.data : query.data?.content ?? [];
   const errorMessage = extractErrorMessage(mutation.error) || extractErrorMessage(query.error);
 
-  return <div className="space-y-6"><div className="flex items-center justify-between"><h1 className="text-3xl font-semibold">{title}</h1></div>{errorMessage && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{errorMessage}</div>}<div className="grid gap-6 lg:grid-cols-[320px_1fr]"><form className="card space-y-3" onSubmit={handleSubmit((values) => mutation.mutate(values))}>{fields.map((f) => <div key={f.name}><label className="label">{f.label}</label><FieldInput field={f} register={register} /></div>)}<button className="btn-primary w-full">Add</button></form><div className="card overflow-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b">{fields.map((f) => <th key={f.name} className="py-2">{f.label}</th>)}</tr></thead><tbody>{rows.map((row: any) => <tr key={row.id} className="border-b last:border-b-0">{fields.map((f) => <td key={f.name} className="py-3">{String(row[f.name] ?? '')}</td>)}</tr>)}</tbody></table></div></div></div>;
+  return <div className="space-y-6"><PageHeader eyebrow="Workspace" title={title} description={`Add and review ${title.toLowerCase()} in one place.`} />{errorMessage && <ErrorBanner message={errorMessage} />}<div className="grid gap-6 lg:grid-cols-[320px_1fr]"><form className="card space-y-3" onSubmit={handleSubmit((values) => mutation.mutate(values))}>{fields.map((f) => <div key={f.name}><label className="label">{f.label}</label><FieldInput field={f} register={register} /></div>)}<button className="btn-primary w-full">Add</button></form><div className="card overflow-auto"><table className="data-table w-full text-left text-sm"><thead><tr>{fields.map((f) => <th key={f.name} className="py-2">{f.label}</th>)}</tr></thead><tbody>{rows.map((row: any) => <tr key={row.id}>{fields.map((f) => <td key={f.name} className="py-3">{renderResourceCell(row, f)}</td>)}</tr>)}</tbody></table></div></div></div>;
 }
 
 function TransactionsPage() {
@@ -176,10 +332,8 @@ function TransactionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold">Transactions</h1>
-      </div>
-      {errorMessage && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{errorMessage}</div>}
+      <PageHeader eyebrow="Money Flow" title="Transactions" description="Add expenses, income, and transfers with cleaner transaction details." />
+      {errorMessage && <ErrorBanner message={errorMessage} />}
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
         <form
           className="card space-y-3"
@@ -240,9 +394,9 @@ function TransactionsPage() {
           {!accountOptions.length && <p className="text-sm text-slate-500">Create an account first from the Accounts page.</p>}
         </form>
         <div className="card overflow-auto">
-          <table className="w-full text-left text-sm">
+          <table className="data-table w-full text-left text-sm">
             <thead>
-              <tr className="border-b">
+              <tr>
                 <th className="py-2">Type</th>
                 <th className="py-2">Amount</th>
                 <th className="py-2">Date</th>
@@ -253,13 +407,13 @@ function TransactionsPage() {
             </thead>
             <tbody>
               {rows.map((row: any) => (
-                <tr key={row.id} className="border-b last:border-b-0">
+                <tr key={row.id}>
                   <td className="py-3">{String(row.type ?? '')}</td>
-                  <td className="py-3">{String(row.amount ?? '')}</td>
+                  <td className="py-3">{formatCurrency(row.amount)}</td>
                   <td className="py-3">{String(row.transactionDate ?? '')}</td>
-                  <td className="py-3">{String(row.merchant ?? '')}</td>
-                  <td className="py-3">{String(row.accountId ?? '')}</td>
-                  <td className="py-3">{String(row.categoryId ?? '')}</td>
+                  <td className="py-3">{String(row.merchant || row.note || '—')}</td>
+                  <td className="py-3">{String(row.destinationAccountName ? `${row.accountName || '—'} -> ${row.destinationAccountName}` : row.accountName || '—')}</td>
+                  <td className="py-3">{String(row.categoryName || (row.type === 'TRANSFER' ? 'Transfer' : '—'))}</td>
                 </tr>
               ))}
             </tbody>
@@ -300,10 +454,8 @@ function BudgetsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold">Budgets</h1>
-      </div>
-      {errorMessage && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{errorMessage}</div>}
+      <PageHeader eyebrow="Discipline Layer" title="Budgets" description="Track category limits and spot overspending early." />
+      {errorMessage && <ErrorBanner message={errorMessage} />}
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
         <form
           className="card space-y-3"
@@ -340,9 +492,9 @@ function BudgetsPage() {
           {!categoryOptions.length && <p className="text-sm text-slate-500">Create an expense category first from Categories (created automatically on signup).</p>}
         </form>
         <div className="card overflow-auto">
-          <table className="w-full text-left text-sm">
+          <table className="data-table w-full text-left text-sm">
             <thead>
-              <tr className="border-b">
+              <tr>
                 <th className="py-2">Category</th>
                 <th className="py-2">Amount</th>
                 <th className="py-2">Spent</th>
@@ -353,10 +505,10 @@ function BudgetsPage() {
             </thead>
             <tbody>
               {rows.map((row: any) => (
-                <tr key={row.id} className="border-b last:border-b-0">
+                <tr key={row.id}>
                   <td className="py-3">{String(row.categoryName ?? '')}</td>
-                  <td className="py-3">{String(row.amount ?? '')}</td>
-                  <td className="py-3">{String(row.spent ?? '')}</td>
+                  <td className="py-3">{formatCurrency(row.amount)}</td>
+                  <td className="py-3">{formatCurrency(row.spent)}</td>
                   <td className="py-3">{String(row.budgetMonth ?? '')}</td>
                   <td className="py-3">{String(row.budgetYear ?? '')}</td>
                   <td className="py-3">{String(row.threshold ?? '')}</td>
@@ -371,12 +523,7 @@ function BudgetsPage() {
 }
 
 function DashboardPage() {
-  const summary = useQuery({ queryKey: ['summary'], queryFn: () => fetcher('/dashboard/summary') });
-  const spending = useQuery({ queryKey: ['spending'], queryFn: () => fetcher('/dashboard/spending-by-category') });
-  const trend = useQuery({ queryKey: ['trend'], queryFn: () => fetcher('/dashboard/income-vs-expense-trend') });
-  const goals = useQuery({ queryKey: ['goals'], queryFn: () => fetcher('/dashboard/goals-overview') });
-  const budgets = useQuery({ queryKey: ['budgets'], queryFn: () => fetcher('/dashboard/budget-overview') });
-  return <div className="space-y-6"><h1 className="text-3xl font-semibold">Dashboard</h1><div className="grid gap-4 md:grid-cols-4">{['income','expense','net','totalBalances'].map((key) => <div className="card" key={key}><div className="text-sm text-slate-500">{key}</div><div className="mt-2 text-2xl font-bold">${summary.data?.[key] ?? 0}</div></div>)}</div><div className="grid gap-6 lg:grid-cols-2"><div className="card h-80"><h2 className="mb-4 font-semibold">Spending by category</h2><ResponsiveContainer><PieChart><Pie data={spending.data || []} dataKey="amount" nameKey="category" outerRadius={90}>{(spending.data || []).map((_: any, i: number) => <Cell key={i} fill={['#1d4ed8','#16a34a','#f59e0b','#dc2626','#8b5cf6'][i % 5]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer></div><div className="card h-80"><h2 className="mb-4 font-semibold">Income vs expense trend</h2><ResponsiveContainer><LineChart data={trend.data || []}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="month" /><YAxis /><Tooltip /><Line type="monotone" dataKey="income" stroke="#16a34a" /><Line type="monotone" dataKey="expense" stroke="#dc2626" /></LineChart></ResponsiveContainer></div></div><div className="grid gap-6 lg:grid-cols-2"><div className="card"><h2 className="mb-4 font-semibold">Budget overview</h2><div className="space-y-3">{(budgets.data || []).map((b: any) => <div key={b.id}><div className="mb-1 flex justify-between text-sm"><span>{b.categoryName}</span><span>${b.spent} / ${b.amount}</span></div><div className="h-3 rounded-full bg-slate-200"><div className="h-3 rounded-full bg-primary" style={{ width: `${Math.min((Number(b.spent) / Number(b.amount || 1)) * 100, 100)}%` }} /></div></div>)}</div></div><div className="card"><h2 className="mb-4 font-semibold">Goal progress</h2><div className="space-y-3">{(goals.data || []).map((g: any) => <div key={g.id}><div className="mb-1 flex justify-between text-sm"><span>{g.name}</span><span>{g.percentage}%</span></div><div className="h-3 rounded-full bg-slate-200"><div className="h-3 rounded-full bg-success" style={{ width: `${Math.min(Number(g.percentage), 100)}%` }} /></div></div>)}</div></div></div></div>;
+  return <Dashboard />;
 }
 
 function ReportsPage() {
@@ -384,6 +531,8 @@ function ReportsPage() {
   const to = new Date().toISOString().slice(0,10);
   const category = useQuery({ queryKey: ['report-category'], queryFn: () => fetcher(`/reports/category-spend?from=${from}&to=${to}`) });
   const trend = useQuery({ queryKey: ['report-trend'], queryFn: () => fetcher(`/reports/income-vs-expense?from=${from}&to=${to}`) });
+  const advancedTrends = useQuery({ queryKey: ['advanced-trends'], queryFn: () => fetcher(`/reports/trends?from=${new Date(new Date().getFullYear(), new Date().getMonth() - 5, 1).toISOString().slice(0,10)}&to=${to}`) });
+  const netWorth = useQuery({ queryKey: ['net-worth'], queryFn: () => fetcher('/reports/net-worth') });
   const exportMutation = useMutation({
     mutationFn: async () => {
       const response = await api.get('/reports/export/csv', {
@@ -396,20 +545,245 @@ function ReportsPage() {
       triggerBlobDownload(blob, `transactions-${from}-to-${to}.csv`);
     }
   });
-  const errorMessage = extractErrorMessage(category.error) || extractErrorMessage(trend.error) || extractErrorMessage(exportMutation.error);
+  const errorMessage = extractErrorMessage(category.error) || extractErrorMessage(trend.error) || extractErrorMessage(advancedTrends.error) || extractErrorMessage(netWorth.error) || extractErrorMessage(exportMutation.error);
 
-  return <div className="space-y-6"><h1 className="text-3xl font-semibold">Reports</h1>{errorMessage && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{errorMessage}</div>}<div className="grid gap-6 lg:grid-cols-2"><div className="card h-80"><ResponsiveContainer><BarChart data={category.data || []}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="category" /><YAxis /><Tooltip /><Bar dataKey="amount" fill="#1d4ed8" /></BarChart></ResponsiveContainer></div><div className="card h-80"><ResponsiveContainer><LineChart data={trend.data || []}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="month" /><YAxis /><Tooltip /><Line dataKey="income" stroke="#16a34a" /><Line dataKey="expense" stroke="#dc2626" /></LineChart></ResponsiveContainer></div></div><button className="btn-primary" onClick={() => exportMutation.mutate()} disabled={exportMutation.isPending}>{exportMutation.isPending ? 'Preparing CSV...' : 'Download CSV export'}</button></div>;
+  return <div className="space-y-6"><PageHeader eyebrow="Advanced Reporting" title="Spending, savings, and net worth over time." description="Compare category trends, savings rate, and balance movement with simpler visuals." actions={<button className="btn-primary" onClick={() => exportMutation.mutate()} disabled={exportMutation.isPending}>{exportMutation.isPending ? 'Preparing CSV...' : 'Download CSV export'}</button>} />{errorMessage && <ErrorBanner message={errorMessage} />}<div className="grid gap-6 lg:grid-cols-2"><div className="card h-80 chart-panel"><SectionTitle title="Category spend" description="This month's highest expense buckets" /><ResponsiveContainer><BarChart data={category.data || []}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="category" /><YAxis /><Tooltip formatter={(value) => formatCurrency(value)} /><Bar dataKey="amount" fill="#0f766e" radius={[12, 12, 0, 0]} /></BarChart></ResponsiveContainer></div><div className="card h-80 chart-panel"><SectionTitle title="Income vs expense" description="Monthly inflow versus outflow" /><ResponsiveContainer><LineChart data={trend.data || []}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="month" /><YAxis /><Tooltip formatter={(value) => formatCurrency(value)} /><Line dataKey="income" stroke="#10b981" strokeWidth={3} /><Line dataKey="expense" stroke="#f97316" strokeWidth={3} /></LineChart></ResponsiveContainer></div></div><div className="grid gap-6 lg:grid-cols-2"><div className="card h-80 chart-panel"><SectionTitle title="Savings rate trend" description="Keep the direction obvious" /><ResponsiveContainer><LineChart data={advancedTrends.data || []}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="period" /><YAxis /><Tooltip /><Line dataKey="savingsRate" stroke="#0891b2" strokeWidth={3} /></LineChart></ResponsiveContainer></div><div className="card h-80 chart-panel"><SectionTitle title="Net worth tracking" description="Estimated balance trajectory over time" /><ResponsiveContainer><LineChart data={netWorth.data || []}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="month" /><YAxis /><Tooltip formatter={(value) => formatCurrency(value)} /><Line dataKey="netWorth" stroke="#7c3aed" strokeWidth={3} /></LineChart></ResponsiveContainer></div></div></div>;
+}
+
+function InsightsPage() {
+  const healthScore = useQuery({ queryKey: ['insights-health'], queryFn: () => fetcher('/insights/health-score') });
+  const insights = useQuery({ queryKey: ['insights-list'], queryFn: () => fetcher('/insights') });
+  const trends = useQuery({ queryKey: ['insights-trends'], queryFn: () => fetcher(`/reports/trends?from=${new Date(new Date().getFullYear(), new Date().getMonth() - 5, 1).toISOString().slice(0,10)}&to=${today}`) });
+  const errorMessage = extractErrorMessage(healthScore.error) || extractErrorMessage(insights.error) || extractErrorMessage(trends.error);
+
+  return (
+    <div className="space-y-6">
+      <PageHeader eyebrow="Insight Engine" title="One score, with simple reasons behind it." description="See what is improving, what is slipping, and what to do next." />
+      {errorMessage && <ErrorBanner message={errorMessage} />}
+      <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
+        <div className="card">
+          <div className="text-sm text-slate-500">Financial health score</div>
+          <div className="mt-2 text-4xl font-bold text-primary">{healthScore.data?.score ?? 0}</div>
+          <div className="mt-6 space-y-4">
+            {(healthScore.data?.factors || []).map((factor: any) => (
+              <div key={factor.name}>
+                <div className="mb-1 flex justify-between text-sm">
+                  <span>{factor.name}</span>
+                  <span>{factor.score}</span>
+                </div>
+                <div className="h-2 rounded-full bg-slate-200">
+                  <div className="h-2 rounded-full bg-primary" style={{ width: `${factor.score}%` }} />
+                </div>
+                <p className="mt-1 text-xs text-slate-500">{factor.summary}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="card h-96 chart-panel">
+          <SectionTitle title="Savings trend" description="Six-month view of saving momentum" />
+          <ResponsiveContainer>
+            <LineChart data={trends.data || []}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="period" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="savingsRate" stroke="#0f766e" strokeWidth={3} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+      <div className="card">
+        <SectionTitle title="Suggestions" description="High-impact next steps based on the score" />
+        <div className="grid gap-3 md:grid-cols-2">
+          {(healthScore.data?.suggestions || []).map((suggestion: string) => (
+            <div key={suggestion} className="insight-card text-sm text-slate-700">{suggestion}</div>
+          ))}
+        </div>
+      </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        {(insights.data || []).map((item: any) => (
+          <div key={item.title} className="card">
+            <div className="text-sm font-semibold">{item.title}</div>
+            <div className="mt-2 text-sm text-slate-600">{item.message}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RulesPage() {
+  const { register, handleSubmit, reset, watch } = useForm<RuleFormValues>({
+    defaultValues: {
+      priority: '100',
+      conditionField: 'merchant',
+      conditionOperator: 'equals',
+      actionType: 'set_category',
+      isActive: 'true'
+    }
+  });
+  const qc = useQueryClient();
+  const rules = useQuery({ queryKey: ['/rules'], queryFn: () => fetcher('/rules') });
+  const categories = useQuery({ queryKey: ['/categories'], queryFn: () => fetcher('/categories') });
+  const actionType = watch('actionType');
+  const conditionField = watch('conditionField');
+
+  const createRule = useMutation({
+    mutationFn: (payload: any) => api.post('/rules', payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['/rules'] });
+      reset({
+        priority: '100',
+        conditionField: 'merchant',
+        conditionOperator: 'equals',
+        actionType: 'set_category',
+        isActive: 'true',
+        name: '',
+        conditionValue: '',
+        actionValue: ''
+      });
+    }
+  });
+  const updateRule = useMutation({
+    mutationFn: ({ id, payload }: any) => api.put(`/rules/${id}`, payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['/rules'] })
+  });
+  const deleteRule = useMutation({
+    mutationFn: (id: string) => api.delete(`/rules/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['/rules'] })
+  });
+
+  const categoryOptions = (categories.data || []).map((category: any) => ({ value: category.id, label: category.name }));
+  const errorMessage = extractErrorMessage(rules.error) || extractErrorMessage(categories.error) || extractErrorMessage(createRule.error) || extractErrorMessage(updateRule.error) || extractErrorMessage(deleteRule.error);
+
+  return (
+    <div className="space-y-6">
+      <PageHeader eyebrow="Automation Layer" title="Create simple rules for recurring money actions." description="Use merchant, amount, and category rules for categorization, tags, and alerts." />
+      {errorMessage && <ErrorBanner message={errorMessage} />}
+      <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
+        <form
+          className="card space-y-3"
+          onSubmit={handleSubmit((values) =>
+            createRule.mutate({
+              name: values.name,
+              priority: Number(values.priority),
+              condition: {
+                field: values.conditionField,
+                operator: values.conditionOperator,
+                value: values.conditionValue
+              },
+              action: {
+                type: values.actionType,
+                value: values.actionValue
+              },
+              active: values.isActive === 'true'
+            })
+          )}
+        >
+          <div>
+            <label className="label">Rule name</label>
+            <input className="input" {...register('name')} />
+          </div>
+          <div>
+            <label className="label">Priority</label>
+            <input type="number" className="input" {...register('priority')} />
+          </div>
+          <div>
+            <label className="label">When field</label>
+            <FieldInput field={{ name: 'conditionField', label: 'When field', options: ruleFieldOptions }} register={register} />
+          </div>
+          <div>
+            <label className="label">Operator</label>
+            <FieldInput field={{ name: 'conditionOperator', label: 'Operator', options: ruleOperatorOptions }} register={register} />
+          </div>
+          <div>
+            <label className="label">Value</label>
+            {conditionField === 'categoryId' ? (
+              <FieldInput field={{ name: 'conditionValue', label: 'Value', options: categoryOptions }} register={register} />
+            ) : conditionField === 'type' ? (
+              <FieldInput field={{ name: 'conditionValue', label: 'Value', options: transactionTypeOptions }} register={register} />
+            ) : (
+              <input className="input" {...register('conditionValue')} />
+            )}
+          </div>
+          <div>
+            <label className="label">Then action</label>
+            <FieldInput field={{ name: 'actionType', label: 'Then action', options: ruleActionOptions }} register={register} />
+          </div>
+          <div>
+            <label className="label">Action value</label>
+            {actionType === 'set_category' ? (
+              <FieldInput field={{ name: 'actionValue', label: 'Action value', options: categoryOptions }} register={register} />
+            ) : (
+              <input className="input" {...register('actionValue')} />
+            )}
+          </div>
+          <div>
+            <label className="label">Status</label>
+            <FieldInput field={{ name: 'isActive', label: 'Status', options: [{ value: 'true', label: 'Enabled' }, { value: 'false', label: 'Disabled' }] }} register={register} />
+          </div>
+          <button className="btn-primary w-full" disabled={createRule.isPending}>Create rule</button>
+        </form>
+        <div className="card overflow-auto">
+          <table className="data-table w-full text-left text-sm">
+            <thead>
+              <tr>
+                <th className="py-2">Name</th>
+                <th className="py-2">Rule</th>
+                <th className="py-2">Priority</th>
+                <th className="py-2">Status</th>
+                <th className="py-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(rules.data || []).map((rule: any) => (
+                <tr key={rule.id}>
+                  <td className="py-3 font-medium">{rule.name}</td>
+                  <td className="py-3 text-slate-600">{describeRule(rule)}</td>
+                  <td className="py-3">{rule.priority}</td>
+                  <td className="py-3">{rule.active ? 'Enabled' : 'Disabled'}</td>
+                  <td className="py-3">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() =>
+                          updateRule.mutate({
+                            id: rule.id,
+                            payload: {
+                              name: rule.name,
+                              priority: rule.priority,
+                              condition: rule.condition,
+                              action: rule.action,
+                              active: !rule.active
+                            }
+                          })
+                        }
+                      >
+                        Toggle
+                      </button>
+                      <button type="button" className="btn-secondary" onClick={() => deleteRule.mutate(rule.id)}>Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function SettingsPage() {
-  const { user } = useAuthStore();
-  return <div className="card max-w-xl"><h1 className="mb-4 text-3xl font-semibold">Settings</h1><p className="text-sm text-slate-500">Profile details and environment assumptions for local development.</p><div className="mt-4 space-y-2 text-sm"><div><strong>Name:</strong> {user?.displayName}</div><div><strong>Email:</strong> {user?.email}</div><div><strong>Reset flow:</strong> MailHog or backend console token output.</div></div></div>;
+  const { user, logout } = useAuthStore();
+  return <div className="space-y-6"><PageHeader eyebrow="Profile & Environment" title="Settings" description="Basic profile and environment information." /><div className="card max-w-xl"><div className="mt-4 space-y-4 text-sm"><div><strong>Name:</strong> {user?.displayName}</div><div><strong>Email:</strong> {user?.email}</div><div><strong>Reset flow:</strong> MailHog or backend console token output.</div><button type="button" className="btn-secondary mt-4 w-full sm:w-auto" onClick={logout}>Logout</button></div></div></div>;
 }
 
 function Protected() {
   const auth = useAuthStore();
   if (!auth.accessToken) return <Navigate to="/login" replace />;
-  return <Layout><Routes><Route path="/" element={<DashboardPage />} /><Route path="/transactions" element={<TransactionsPage />} /><Route path="/budgets" element={<BudgetsPage />} /><Route path="/goals" element={<ResourcePage title="Goals" endpoint="/goals" fields={[{ name: 'name', label: 'Name' }, { name: 'targetAmount', label: 'Target', type: 'number' }, { name: 'currentAmount', label: 'Current', type: 'number' }]} />} /><Route path="/reports" element={<ReportsPage />} /><Route path="/recurring" element={<ResourcePage title="Recurring transactions" endpoint="/recurring" fields={[{ name: 'title', label: 'Title' }, { name: 'transactionType', label: 'Type', options: transactionTypeOptions }, { name: 'frequency', label: 'Frequency', options: recurringFrequencyOptions }, { name: 'amount', label: 'Amount', type: 'number' }, { name: 'startDate', label: 'Start', type: 'date' }]} />} /><Route path="/accounts" element={<ResourcePage title="Accounts" endpoint="/accounts" fields={[{ name: 'name', label: 'Name' }, { name: 'type', label: 'Type', options: accountTypeOptions }, { name: 'openingBalance', label: 'Opening balance', type: 'number' }]} />} /><Route path="/settings" element={<SettingsPage />} /></Routes></Layout>;
+  return <Layout><Routes><Route path="/" element={<DashboardPage />} /><Route path="/transactions" element={<TransactionsPage />} /><Route path="/budgets" element={<BudgetsPage />} /><Route path="/goals" element={<ResourcePage title="Goals" endpoint="/goals" fields={[{ name: 'name', label: 'Name' }, { name: 'targetAmount', label: 'Target', type: 'number' }, { name: 'currentAmount', label: 'Current', type: 'number' }]} />} /><Route path="/reports" element={<ReportsPage />} /><Route path="/insights" element={<InsightsPage />} /><Route path="/rules" element={<RulesPage />} /><Route path="/recurring" element={<ResourcePage title="Recurring transactions" endpoint="/recurring" fields={[{ name: 'title', label: 'Title' }, { name: 'transactionType', label: 'Type', options: transactionTypeOptions }, { name: 'frequency', label: 'Frequency', options: recurringFrequencyOptions }, { name: 'amount', label: 'Amount', type: 'number' }, { name: 'startDate', label: 'Start', type: 'date' }]} />} /><Route path="/accounts" element={<ResourcePage title="Accounts" endpoint="/accounts" fields={[{ name: 'name', label: 'Name' }, { name: 'type', label: 'Type', options: accountTypeOptions }, { name: 'openingBalance', label: 'Opening balance', type: 'number' }]} />} /><Route path="/settings" element={<SettingsPage />} /></Routes></Layout>;
 }
 
 export function App() {

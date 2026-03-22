@@ -150,13 +150,13 @@ export function Navbar({ items, user, onLogout }: NavbarProps) {
           <div className="surface sidebar-panel">
             <div>
               <div className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-primary dark:border-primary/30 dark:bg-primary/20 dark:text-slate-100">
-                Finance Tracker
+                Personal Finance
               </div>
-              <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">
-                A mobile-first fintech cockpit.
+              <h1 className="mt-4 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">
+                Your money, organized clearly.
               </h1>
               <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                Forecast, track, and act with a refined layout that feels native on phones, tablets, and ultra-wide screens.
+                Track balances, budgets, insights, and forecasts in a layout that stays easy to use on every screen size.
               </p>
             </div>
 

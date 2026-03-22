@@ -6,6 +6,8 @@ import { useAuthStore } from '../store/authStore';
 import { BarChart, Bar, CartesianGrid, LineChart, Line, PieChart, Pie, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
 import { Navbar, type NavItem } from '../components/Navbar';
 import { Dashboard } from './Dashboard';
+import { ErrorBanner } from '../components/ErrorBanner';
+import { extractErrorMessage, formatCurrency } from '../utils/ui';
 
 const nav: NavItem[] = [
   { href: '/', label: 'Dashboard', mobileLabel: 'Home' },
@@ -92,26 +94,6 @@ function humanize(value: string) {
     .join(' ');
 }
 
-function extractErrorMessage(error: any): string | undefined {
-  const data = error?.response?.data;
-
-  if (typeof data?.message === 'string' && data.message.trim()) {
-    return data.message;
-  }
-
-  if (data?.errors && typeof data.errors === 'object') {
-    return Object.entries(data.errors)
-      .map(([field, message]) => `${field}: ${message}`)
-      .join(', ');
-  }
-
-  if (typeof error?.message === 'string' && error.message.trim()) {
-    return error.message;
-  }
-
-  return undefined;
-}
-
 function triggerBlobDownload(blob: Blob, fileName: string) {
   const objectUrl = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
@@ -123,11 +105,6 @@ function triggerBlobDownload(blob: Blob, fileName: string) {
   URL.revokeObjectURL(objectUrl);
 }
 
-function formatCurrency(value: any) {
-  const amount = Number(value ?? 0);
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(Number.isFinite(amount) ? amount : 0);
-}
-
 function describeRule(rule: any) {
   const field = humanize(String(rule?.condition?.field ?? ''));
   const operator = humanize(String(rule?.condition?.operator ?? ''));
@@ -135,6 +112,14 @@ function describeRule(rule: any) {
   const action = humanize(String(rule?.action?.type ?? ''));
   const actionValue = String(rule?.action?.value ?? '');
   return `If ${field} ${operator} ${value}, then ${action}${actionValue ? `: ${actionValue}` : ''}`;
+}
+
+function renderResourceCell(row: any, field: Field) {
+  const value = row?.[field.name];
+  if (field.type === 'number') {
+    return formatCurrency(value);
+  }
+  return String(value ?? '');
 }
 
 function FieldInput({ field, register }: { field: Field; register: any }) {
@@ -227,6 +212,11 @@ function AuthPage({ mode }: { mode: 'login' | 'register' | 'forgot' }) {
   const navigate = useNavigate();
   const { register, handleSubmit } = useForm<Record<string, string>>();
   const setAuth = useAuthStore((s) => s.setAuth);
+  const authLinks = [
+    { key: 'login', label: 'Login', to: '/login' },
+    { key: 'register', label: 'Create account', to: '/register' },
+    { key: 'forgot', label: 'Forgot password', to: '/forgot-password' }
+  ].filter((link) => link.key !== mode);
   const mutation = useMutation({
     mutationFn: (payload: any) => api.post(`/auth/${mode === 'register' ? 'register' : mode === 'forgot' ? 'forgot-password' : 'login'}`, payload).then((r) => r.data),
     onSuccess: (data) => {
@@ -242,30 +232,54 @@ function AuthPage({ mode }: { mode: 'login' | 'register' | 'forgot' }) {
       <div className="ambient ambient-two" />
       <div className="auth-shell">
         <div className="auth-showcase">
-          <div className="brand-pill">Finance OS</div>
-          <h1 className="mt-5 text-5xl font-semibold leading-tight text-white">Build calm around every money decision.</h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-white/72">A striking finance cockpit with live forecasts, intelligent rules, and health signals that turn tracking into momentum.</p>
-          <div className="mt-10 grid gap-4 sm:grid-cols-3">
-            <MetricCard label="Forecasting" value="Daily" meta="Projected balance runway" tone="cool" />
-            <MetricCard label="Health Score" value="0-100" meta="Savings, buffer, adherence" tone="emerald" />
-            <MetricCard label="Automation" value="Rules" meta="Categorize, tag, alert" tone="warm" />
+          <div className="brand-pill">Personal Finance Tracker</div>
+          <h1 className="mt-5 text-3xl font-semibold leading-tight text-slate-950 dark:text-white sm:text-4xl">
+            Keep everyday money decisions simple and clear.
+          </h1>
+          <p className="mt-4 max-w-xl text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base">
+            Track balances, understand future cash flow, and stay on top of budgets without the interface getting in your way.
+          </p>
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            <MetricCard label="Forecasting" value="Daily" meta="Month-end balance view" tone="cool" />
+            <MetricCard label="Health Score" value="0-100" meta="Savings and cash buffer" tone="emerald" />
+            <MetricCard label="Automation" value="Rules" meta="Categories, tags, alerts" tone="warm" />
           </div>
         </div>
         <div className="auth-card">
-          <div className="kicker">{mode === 'forgot' ? 'Recovery' : 'Welcome back'}</div>
-          <h2 className="mt-3 text-3xl font-semibold capitalize text-slate-950">{mode === 'forgot' ? 'Forgot password' : mode}</h2>
-          <p className="mt-2 text-sm text-slate-500">{mode === 'register' ? 'Create your command center for smarter financial decisions.' : 'Enter the workspace and keep the plan moving.'}</p>
+          <div className="kicker">
+            {mode === 'forgot' ? 'Recovery' : mode === 'register' ? 'Create account' : 'Sign in'}
+          </div>
+          <h2 className="mt-3 text-2xl font-semibold capitalize text-slate-950 dark:text-white">
+            {mode === 'forgot' ? 'Forgot password' : mode === 'register' ? 'Create your account' : 'Login'}
+          </h2>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            {mode === 'register'
+              ? 'Set up your account and start tracking money in one place.'
+              : mode === 'forgot'
+                ? 'Enter your email and we will send reset instructions.'
+                : 'Use your email and password to continue.'}
+          </p>
           <form className="mt-8 space-y-4" onSubmit={handleSubmit((values) => mutation.mutate(values))}>
             {mode !== 'forgot' && mode !== 'login' && <div><label className="label">Display name</label><input className="input" {...register('displayName')} /></div>}
             <div><label className="label">Email</label><input className="input" {...register('email')} /></div>
             {mode !== 'forgot' && <div><label className="label">Password</label><input type="password" className="input" {...register('password')} /></div>}
-            {errorMessage && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{errorMessage}</div>}
-            <button className="btn-primary w-full">{mode === 'forgot' ? 'Send reset instructions' : 'Enter workspace'}</button>
+            {errorMessage && <ErrorBanner message={errorMessage} />}
+            <button className="btn-primary w-full" disabled={mutation.isPending}>
+              {mutation.isPending
+                ? 'Please wait...'
+                : mode === 'forgot'
+                  ? 'Send reset instructions'
+                  : mode === 'register'
+                    ? 'Create account'
+                    : 'Login'}
+            </button>
           </form>
           <div className="mt-5 flex flex-wrap gap-3 text-sm">
-            <NavLink className="text-primary underline-offset-4 hover:underline" to="/login">Login</NavLink>
-            <NavLink className="text-primary underline-offset-4 hover:underline" to="/register">Create account</NavLink>
-            <NavLink className="text-primary underline-offset-4 hover:underline" to="/forgot-password">Forgot password</NavLink>
+            {authLinks.map((link) => (
+              <NavLink key={link.key} className="text-primary underline-offset-4 hover:underline" to={link.to}>
+                {link.label}
+              </NavLink>
+            ))}
           </div>
         </div>
       </div>
@@ -281,7 +295,7 @@ function ResourcePage({ title, endpoint, fields }: { title: string; endpoint: st
   const rows = Array.isArray(query.data) ? query.data : query.data?.content ?? [];
   const errorMessage = extractErrorMessage(mutation.error) || extractErrorMessage(query.error);
 
-  return <div className="space-y-6"><PageHeader eyebrow="Workspace" title={title} description={`Add and review ${title.toLowerCase()} with a cleaner, more expressive control surface.`} />{errorMessage && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{errorMessage}</div>}<div className="grid gap-6 lg:grid-cols-[320px_1fr]"><form className="card space-y-3" onSubmit={handleSubmit((values) => mutation.mutate(values))}>{fields.map((f) => <div key={f.name}><label className="label">{f.label}</label><FieldInput field={f} register={register} /></div>)}<button className="btn-primary w-full">Add</button></form><div className="card overflow-auto"><table className="data-table w-full text-left text-sm"><thead><tr>{fields.map((f) => <th key={f.name} className="py-2">{f.label}</th>)}</tr></thead><tbody>{rows.map((row: any) => <tr key={row.id}>{fields.map((f) => <td key={f.name} className="py-3">{String(row[f.name] ?? '')}</td>)}</tr>)}</tbody></table></div></div></div>;
+  return <div className="space-y-6"><PageHeader eyebrow="Workspace" title={title} description={`Add and review ${title.toLowerCase()} in one place.`} />{errorMessage && <ErrorBanner message={errorMessage} />}<div className="grid gap-6 lg:grid-cols-[320px_1fr]"><form className="card space-y-3" onSubmit={handleSubmit((values) => mutation.mutate(values))}>{fields.map((f) => <div key={f.name}><label className="label">{f.label}</label><FieldInput field={f} register={register} /></div>)}<button className="btn-primary w-full">Add</button></form><div className="card overflow-auto"><table className="data-table w-full text-left text-sm"><thead><tr>{fields.map((f) => <th key={f.name} className="py-2">{f.label}</th>)}</tr></thead><tbody>{rows.map((row: any) => <tr key={row.id}>{fields.map((f) => <td key={f.name} className="py-3">{renderResourceCell(row, f)}</td>)}</tr>)}</tbody></table></div></div></div>;
 }
 
 function TransactionsPage() {
@@ -318,8 +332,8 @@ function TransactionsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Money Flow" title="Transactions" description="Capture spend, income, and transfers with a richer operational view." />
-      {errorMessage && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{errorMessage}</div>}
+      <PageHeader eyebrow="Money Flow" title="Transactions" description="Add expenses, income, and transfers with cleaner transaction details." />
+      {errorMessage && <ErrorBanner message={errorMessage} />}
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
         <form
           className="card space-y-3"
@@ -440,8 +454,8 @@ function BudgetsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Discipline Layer" title="Budgets" description="Track category guardrails and spot overspend before it compounds." />
-      {errorMessage && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{errorMessage}</div>}
+      <PageHeader eyebrow="Discipline Layer" title="Budgets" description="Track category limits and spot overspending early." />
+      {errorMessage && <ErrorBanner message={errorMessage} />}
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
         <form
           className="card space-y-3"
@@ -493,8 +507,8 @@ function BudgetsPage() {
               {rows.map((row: any) => (
                 <tr key={row.id}>
                   <td className="py-3">{String(row.categoryName ?? '')}</td>
-                  <td className="py-3">{String(row.amount ?? '')}</td>
-                  <td className="py-3">{String(row.spent ?? '')}</td>
+                  <td className="py-3">{formatCurrency(row.amount)}</td>
+                  <td className="py-3">{formatCurrency(row.spent)}</td>
                   <td className="py-3">{String(row.budgetMonth ?? '')}</td>
                   <td className="py-3">{String(row.budgetYear ?? '')}</td>
                   <td className="py-3">{String(row.threshold ?? '')}</td>
@@ -533,21 +547,23 @@ function ReportsPage() {
   });
   const errorMessage = extractErrorMessage(category.error) || extractErrorMessage(trend.error) || extractErrorMessage(advancedTrends.error) || extractErrorMessage(netWorth.error) || extractErrorMessage(exportMutation.error);
 
-  return <div className="space-y-6"><PageHeader eyebrow="Advanced Reporting" title="Deep trends, not just basic charts." description="Compare category pressure, savings momentum, and net worth movement across time." actions={<button className="btn-primary" onClick={() => exportMutation.mutate()} disabled={exportMutation.isPending}>{exportMutation.isPending ? 'Preparing CSV...' : 'Download CSV export'}</button>} />{errorMessage && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{errorMessage}</div>}<div className="grid gap-6 lg:grid-cols-2"><div className="card h-80 chart-panel"><SectionTitle title="Category spend" description="This month's highest expense buckets" /><ResponsiveContainer><BarChart data={category.data || []}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="category" /><YAxis /><Tooltip formatter={(value) => formatCurrency(value)} /><Bar dataKey="amount" fill="#0f766e" radius={[12, 12, 0, 0]} /></BarChart></ResponsiveContainer></div><div className="card h-80 chart-panel"><SectionTitle title="Income vs expense" description="Monthly inflow versus outflow" /><ResponsiveContainer><LineChart data={trend.data || []}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="month" /><YAxis /><Tooltip formatter={(value) => formatCurrency(value)} /><Line dataKey="income" stroke="#10b981" strokeWidth={3} /><Line dataKey="expense" stroke="#f97316" strokeWidth={3} /></LineChart></ResponsiveContainer></div></div><div className="grid gap-6 lg:grid-cols-2"><div className="card h-80 chart-panel"><SectionTitle title="Savings rate trend" description="Keep the direction obvious" /><ResponsiveContainer><LineChart data={advancedTrends.data || []}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="period" /><YAxis /><Tooltip /><Line dataKey="savingsRate" stroke="#0891b2" strokeWidth={3} /></LineChart></ResponsiveContainer></div><div className="card h-80 chart-panel"><SectionTitle title="Net worth tracking" description="Estimated balance trajectory over time" /><ResponsiveContainer><LineChart data={netWorth.data || []}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="month" /><YAxis /><Tooltip formatter={(value) => formatCurrency(value)} /><Line dataKey="netWorth" stroke="#7c3aed" strokeWidth={3} /></LineChart></ResponsiveContainer></div></div></div>;
+  return <div className="space-y-6"><PageHeader eyebrow="Advanced Reporting" title="Spending, savings, and net worth over time." description="Compare category trends, savings rate, and balance movement with simpler visuals." actions={<button className="btn-primary" onClick={() => exportMutation.mutate()} disabled={exportMutation.isPending}>{exportMutation.isPending ? 'Preparing CSV...' : 'Download CSV export'}</button>} />{errorMessage && <ErrorBanner message={errorMessage} />}<div className="grid gap-6 lg:grid-cols-2"><div className="card h-80 chart-panel"><SectionTitle title="Category spend" description="This month's highest expense buckets" /><ResponsiveContainer><BarChart data={category.data || []}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="category" /><YAxis /><Tooltip formatter={(value) => formatCurrency(value)} /><Bar dataKey="amount" fill="#0f766e" radius={[12, 12, 0, 0]} /></BarChart></ResponsiveContainer></div><div className="card h-80 chart-panel"><SectionTitle title="Income vs expense" description="Monthly inflow versus outflow" /><ResponsiveContainer><LineChart data={trend.data || []}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="month" /><YAxis /><Tooltip formatter={(value) => formatCurrency(value)} /><Line dataKey="income" stroke="#10b981" strokeWidth={3} /><Line dataKey="expense" stroke="#f97316" strokeWidth={3} /></LineChart></ResponsiveContainer></div></div><div className="grid gap-6 lg:grid-cols-2"><div className="card h-80 chart-panel"><SectionTitle title="Savings rate trend" description="Keep the direction obvious" /><ResponsiveContainer><LineChart data={advancedTrends.data || []}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="period" /><YAxis /><Tooltip /><Line dataKey="savingsRate" stroke="#0891b2" strokeWidth={3} /></LineChart></ResponsiveContainer></div><div className="card h-80 chart-panel"><SectionTitle title="Net worth tracking" description="Estimated balance trajectory over time" /><ResponsiveContainer><LineChart data={netWorth.data || []}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="month" /><YAxis /><Tooltip formatter={(value) => formatCurrency(value)} /><Line dataKey="netWorth" stroke="#7c3aed" strokeWidth={3} /></LineChart></ResponsiveContainer></div></div></div>;
 }
 
 function InsightsPage() {
   const healthScore = useQuery({ queryKey: ['insights-health'], queryFn: () => fetcher('/insights/health-score') });
   const insights = useQuery({ queryKey: ['insights-list'], queryFn: () => fetcher('/insights') });
   const trends = useQuery({ queryKey: ['insights-trends'], queryFn: () => fetcher(`/reports/trends?from=${new Date(new Date().getFullYear(), new Date().getMonth() - 5, 1).toISOString().slice(0,10)}&to=${today}`) });
+  const errorMessage = extractErrorMessage(healthScore.error) || extractErrorMessage(insights.error) || extractErrorMessage(trends.error);
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Insight Engine" title="A single score, with reasons you can act on." description="See what is improving, what is slipping, and where the next smart move lives." />
+      <PageHeader eyebrow="Insight Engine" title="One score, with simple reasons behind it." description="See what is improving, what is slipping, and what to do next." />
+      {errorMessage && <ErrorBanner message={errorMessage} />}
       <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
         <div className="card">
           <div className="text-sm text-slate-500">Financial health score</div>
-          <div className="mt-2 text-5xl font-bold text-primary">{healthScore.data?.score ?? 0}</div>
+          <div className="mt-2 text-4xl font-bold text-primary">{healthScore.data?.score ?? 0}</div>
           <div className="mt-6 space-y-4">
             {(healthScore.data?.factors || []).map((factor: any) => (
               <div key={factor.name}>
@@ -642,8 +658,8 @@ function RulesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Automation Layer" title="Tell the app how to think about your money." description="Create merchant, amount, and category-based automations for categorization, tags, and alerts." />
-      {errorMessage && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{errorMessage}</div>}
+      <PageHeader eyebrow="Automation Layer" title="Create simple rules for recurring money actions." description="Use merchant, amount, and category rules for categorization, tags, and alerts." />
+      {errorMessage && <ErrorBanner message={errorMessage} />}
       <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
         <form
           className="card space-y-3"
@@ -761,7 +777,7 @@ function RulesPage() {
 
 function SettingsPage() {
   const { user, logout } = useAuthStore();
-  return <div className="space-y-6"><PageHeader eyebrow="Profile & Environment" title="Settings" description="A lightweight profile view for local development and account context." /><div className="card max-w-xl"><div className="mt-4 space-y-4 text-sm"><div><strong>Name:</strong> {user?.displayName}</div><div><strong>Email:</strong> {user?.email}</div><div><strong>Reset flow:</strong> MailHog or backend console token output.</div><button type="button" className="btn-secondary mt-4 w-full sm:w-auto" onClick={logout}>Logout</button></div></div></div>;
+  return <div className="space-y-6"><PageHeader eyebrow="Profile & Environment" title="Settings" description="Basic profile and environment information." /><div className="card max-w-xl"><div className="mt-4 space-y-4 text-sm"><div><strong>Name:</strong> {user?.displayName}</div><div><strong>Email:</strong> {user?.email}</div><div><strong>Reset flow:</strong> MailHog or backend console token output.</div><button type="button" className="btn-secondary mt-4 w-full sm:w-auto" onClick={logout}>Logout</button></div></div></div>;
 }
 
 function Protected() {

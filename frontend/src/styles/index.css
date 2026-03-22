@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -25,9 +25,9 @@
     @apply min-h-screen overflow-x-hidden font-sans text-slate-950 transition-all duration-300 ease-in-out dark:text-slate-50;
     font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
     background:
-      radial-gradient(circle at top left, rgba(30, 58, 138, 0.18), transparent 28%),
-      radial-gradient(circle at top right, rgba(16, 185, 129, 0.14), transparent 26%),
-      linear-gradient(135deg, #f8fbff 0%, #eef4ff 44%, #ecfdf5 100%);
+      radial-gradient(circle at top left, rgba(30, 58, 138, 0.08), transparent 30%),
+      radial-gradient(circle at top right, rgba(16, 185, 129, 0.06), transparent 24%),
+      linear-gradient(180deg, #f8fafc 0%, #f8fbff 48%, #f3f7fb 100%);
   }
 
   #root {
@@ -36,8 +36,8 @@
 
   html.dark body {
     background:
-      radial-gradient(circle at top left, rgba(30, 58, 138, 0.25), transparent 30%),
-      radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.16), transparent 28%),
+      radial-gradient(circle at top left, rgba(30, 58, 138, 0.18), transparent 28%),
+      radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.08), transparent 22%),
       linear-gradient(180deg, #020617 0%, #0f172a 100%);
   }
 
@@ -78,23 +78,23 @@
   }
 
   .surface {
-    @apply rounded-[28px] border border-white/60 bg-white/80 shadow-xl backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/80;
+    @apply rounded-[24px] border border-white/70 bg-white/90 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-slate-700/70 dark:bg-slate-900/80 dark:shadow-[0_18px_40px_rgba(2,6,23,0.35)];
   }
 
   .layout-grid {
-    @apply min-h-screen lg:grid lg:grid-cols-[300px_minmax(0,1fr)] 3xl:grid-cols-[340px_minmax(0,1fr)];
+    @apply min-h-screen lg:grid lg:grid-cols-[284px_minmax(0,1fr)] 3xl:grid-cols-[320px_minmax(0,1fr)];
   }
 
   .sidebar-shell {
-    @apply p-4;
+    @apply p-3 lg:p-4;
   }
 
   .sidebar-panel {
-    @apply sticky top-4 flex min-h-[calc(100vh-2rem)] flex-col gap-6 p-5;
+    @apply sticky top-4 flex min-h-[calc(100vh-2rem)] flex-col gap-5 p-5;
   }
 
   .floating-nav {
-    @apply fixed inset-x-4 bottom-4 z-50 rounded-[28px] border border-white/70 bg-white/80 p-2 shadow-2xl backdrop-blur-xl dark:border-slate-700/70 dark:bg-slate-900/80;
+    @apply fixed inset-x-4 bottom-4 z-50 rounded-[24px] border border-white/80 bg-white/90 p-2 shadow-[0_16px_30px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/80;
   }
 
   .app-main {
@@ -102,7 +102,7 @@
   }
 
   .content-wrap {
-    @apply relative z-10 flex flex-col gap-4 sm:gap-6;
+    @apply relative z-10 flex flex-col gap-4 sm:gap-5;
   }
 
   .hero-panel {
@@ -112,11 +112,11 @@
   .hero-panel::after {
     content: '';
     position: absolute;
-    inset: auto -5rem -5rem auto;
-    width: 15rem;
-    height: 15rem;
+    inset: auto -4rem -4rem auto;
+    width: 11rem;
+    height: 11rem;
     border-radius: 9999px;
-    background: radial-gradient(circle, rgba(16, 185, 129, 0.14), rgba(16, 185, 129, 0));
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0));
     pointer-events: none;
   }
 
@@ -130,12 +130,12 @@
   }
 
   .hero-title {
-    font-family: 'Space Grotesk', 'Manrope', sans-serif;
-    @apply mt-3 text-2xl font-semibold leading-tight tracking-tight text-slate-950 dark:text-white md:text-3xl lg:text-4xl;
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    @apply mt-3 text-2xl font-semibold leading-tight tracking-tight text-slate-950 dark:text-white md:text-3xl;
   }
 
   .hero-description {
-    @apply mt-3 max-w-3xl text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base;
+    @apply mt-3 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300 sm:text-base;
   }
 
   .brand-pill,
@@ -144,23 +144,23 @@
   }
 
   .metric-card {
-    @apply rounded-[24px] border border-white/70 p-4 shadow-sm backdrop-blur-xl dark:border-slate-700/70;
+    @apply rounded-[20px] border border-white/70 p-4 shadow-sm backdrop-blur-md dark:border-slate-700/70;
   }
 
   .metric-default {
-    @apply bg-white/80 dark:bg-slate-900/75;
+    @apply bg-white/80 dark:bg-slate-900/70;
   }
 
   .metric-cool {
-    @apply bg-primary/10 dark:bg-primary/20;
+    @apply bg-primary/5 dark:bg-primary/20;
   }
 
   .metric-warm {
-    @apply bg-expense/10 dark:bg-expense/20;
+    @apply bg-expense/5 dark:bg-expense/20;
   }
 
   .metric-emerald {
-    @apply bg-accent/10 dark:bg-accent/20;
+    @apply bg-accent/5 dark:bg-accent/20;
   }
 
   .metric-label {
@@ -168,28 +168,35 @@
   }
 
   .metric-value {
-    font-family: 'Space Grotesk', 'Manrope', sans-serif;
-    @apply mt-3 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white;
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    @apply mt-3 text-xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-2xl;
   }
 
   .metric-meta {
-    @apply mt-2 text-sm text-slate-600 dark:text-slate-300;
+    @apply mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300;
   }
 
   .auth-shell {
-    @apply relative z-10 mx-auto grid max-w-6xl gap-5 lg:grid-cols-[1.15fr_minmax(360px,0.85fr)];
+    @apply relative z-10 mx-auto grid max-w-5xl gap-4 lg:grid-cols-[1.05fr_minmax(360px,0.95fr)];
   }
 
   .auth-showcase {
-    @apply rounded-[32px] border border-white/10 px-6 py-8 text-white shadow-2xl;
+    @apply rounded-[28px] border border-white/70 px-6 py-7 text-slate-950 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-slate-700/70 dark:text-white;
     background:
-      radial-gradient(circle at top left, rgba(16, 185, 129, 0.22), transparent 26%),
-      radial-gradient(circle at top right, rgba(30, 58, 138, 0.28), transparent 28%),
-      linear-gradient(160deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92));
+      radial-gradient(circle at top left, rgba(16, 185, 129, 0.08), transparent 28%),
+      radial-gradient(circle at top right, rgba(30, 58, 138, 0.1), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(248, 250, 252, 0.94));
+  }
+
+  html.dark .auth-showcase {
+    background:
+      radial-gradient(circle at top left, rgba(16, 185, 129, 0.1), transparent 28%),
+      radial-gradient(circle at top right, rgba(30, 58, 138, 0.16), transparent 30%),
+      linear-gradient(180deg, rgba(15, 23, 42, 0.84), rgba(15, 23, 42, 0.96));
   }
 
   .auth-card {
-    @apply surface rounded-[32px] p-6 sm:p-8;
+    @apply surface rounded-[28px] p-6 sm:p-7;
   }
 
   .card {
@@ -197,7 +204,7 @@
   }
 
   .insight-card {
-    @apply rounded-[22px] border border-white/60 bg-white/70 p-4 backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-950/70;
+    @apply rounded-[18px] border border-white/70 bg-white/80 p-4 backdrop-blur-md dark:border-slate-700/70 dark:bg-slate-950/70;
   }
 
   .btn {
@@ -205,24 +212,24 @@
   }
 
   .btn-primary {
-    @apply btn bg-primary text-white shadow-lg shadow-primary/20 hover:bg-blue-900 dark:bg-primary dark:hover:bg-blue-800;
+    @apply btn bg-primary text-white shadow-md shadow-primary/20 hover:bg-blue-900 dark:bg-primary dark:hover:bg-blue-800;
   }
 
   .btn-secondary {
-    @apply btn border border-slate-200 bg-white/70 text-slate-700 shadow-sm backdrop-blur-xl hover:bg-white dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:bg-slate-900;
+    @apply btn border border-slate-200 bg-white/80 text-slate-700 shadow-sm backdrop-blur-md hover:bg-white dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:bg-slate-900;
   }
 
   .input {
-    @apply w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-slate-950 shadow-sm backdrop-blur-xl outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-700 dark:bg-slate-950/70 dark:text-white dark:focus:border-primary dark:focus:ring-primary/20;
+    @apply w-full rounded-xl border border-slate-200 bg-white/95 px-4 py-3 text-slate-950 shadow-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-700 dark:bg-slate-950/80 dark:text-white dark:focus:border-primary dark:focus:ring-primary/20;
   }
 
   .label {
-    @apply mb-2 block text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400;
+    @apply mb-2 block text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400;
   }
 
   .data-table {
     border-collapse: separate;
-    border-spacing: 0 0.75rem;
+    border-spacing: 0 0.5rem;
   }
 
   .data-table thead th {
@@ -230,7 +237,7 @@
   }
 
   .data-table tbody tr {
-    @apply rounded-[22px] bg-white/75 shadow-sm dark:bg-slate-950/70;
+    @apply rounded-[18px] bg-slate-50/90 shadow-none dark:bg-slate-950/70;
   }
 
   .data-table tbody td {
@@ -259,37 +266,37 @@
   position: fixed;
   pointer-events: none;
   z-index: 0;
-  filter: blur(10px);
-  opacity: 0.55;
-  animation: float-orb 18s ease-in-out infinite;
+  filter: blur(18px);
+  opacity: 0.22;
+  animation: float-orb 22s ease-in-out infinite;
 }
 
 .ambient-one {
   top: -4rem;
   right: -4rem;
-  width: 18rem;
-  height: 18rem;
+  width: 14rem;
+  height: 14rem;
   border-radius: 9999px;
-  background: radial-gradient(circle, rgba(30, 58, 138, 0.26), rgba(30, 58, 138, 0));
+  background: radial-gradient(circle, rgba(30, 58, 138, 0.2), rgba(30, 58, 138, 0));
 }
 
 .ambient-two {
   left: -5rem;
   top: 30%;
-  width: 16rem;
-  height: 16rem;
+  width: 12rem;
+  height: 12rem;
   border-radius: 9999px;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0));
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.14), rgba(16, 185, 129, 0));
   animation-delay: -4s;
 }
 
 .ambient-three {
   bottom: -4rem;
   right: 15%;
-  width: 14rem;
-  height: 14rem;
+  width: 10rem;
+  height: 10rem;
   border-radius: 9999px;
-  background: radial-gradient(circle, rgba(22, 163, 74, 0.18), rgba(22, 163, 74, 0));
+  background: radial-gradient(circle, rgba(22, 163, 74, 0.12), rgba(22, 163, 74, 0));
   animation-delay: -8s;
 }
 
@@ -302,10 +309,10 @@
 }
 
 .recharts-default-tooltip {
-  border-radius: 18px !important;
-  border: 1px solid rgba(255, 255, 255, 0.7) !important;
-  background: rgba(255, 255, 255, 0.92) !important;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16) !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.12) !important;
 }
 
 .dark .recharts-default-tooltip {

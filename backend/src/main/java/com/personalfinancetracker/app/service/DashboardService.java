@@ -21,8 +21,10 @@ public class DashboardService {
     private final AccountRepository accountRepository;
     private final ReportService reportService;
     private final TransactionService transactionService;
+    private final ForecastService forecastService;
+    private final InsightsService insightsService;
 
-    public DashboardService(TransactionRepository transactionRepository, AuthFacade authFacade, BudgetService budgetService, GoalService goalService, RecurringService recurringService, AccountRepository accountRepository, ReportService reportService, TransactionService transactionService) {
+    public DashboardService(TransactionRepository transactionRepository, AuthFacade authFacade, BudgetService budgetService, GoalService goalService, RecurringService recurringService, AccountRepository accountRepository, ReportService reportService, TransactionService transactionService, ForecastService forecastService, InsightsService insightsService) {
         this.transactionRepository = transactionRepository;
         this.authFacade = authFacade;
         this.budgetService = budgetService;
@@ -31,6 +33,8 @@ public class DashboardService {
         this.accountRepository = accountRepository;
         this.reportService = reportService;
         this.transactionService = transactionService;
+        this.forecastService = forecastService;
+        this.insightsService = insightsService;
     }
 
     @Transactional(readOnly = true)
@@ -51,4 +55,8 @@ public class DashboardService {
     public Object upcomingBills() { return recurringService.upcoming(); }
     public Object spendingByCategory() { return reportService.categorySpend(LocalDate.now().withDayOfMonth(1), LocalDate.now().withDayOfMonth(LocalDate.now().lengthOfMonth())); }
     public Object incomeExpenseTrend() { return reportService.incomeVsExpense(LocalDate.now().minusMonths(5).withDayOfMonth(1), LocalDate.now()); }
+    public Object forecastMonth() { return forecastService.monthForecast(); }
+    public Object forecastDaily() { return forecastService.dailyForecast(); }
+    public Object healthScore() { return insightsService.healthScore(); }
+    public Object insights() { return insightsService.insights(); }
 }

@@ -84,7 +84,7 @@ cd backend
 ```
 
 Backend URLs:
-- API: `https://friendly-pancake-69749gv7xp9qhrwx-8080.app.github.dev/api`
+- API: `https://literate-dollop-g4w74qxwv945hr6g-8080.app.github.dev/`
 - Swagger UI: `https://friendly-pancake-69749gv7xp9qhrwx-8080.app.github.dev/swagger-ui.html`
 
 ### 3. Run the frontend

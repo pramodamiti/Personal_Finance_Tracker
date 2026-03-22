@@ -17,4 +17,8 @@ public class DashboardController {
     @GetMapping("/goals-overview") public Object goals() { return service.goalsOverview(); }
     @GetMapping("/spending-by-category") public Object spendingByCategory() { return service.spendingByCategory(); }
     @GetMapping("/income-vs-expense-trend") public Object trend() { return service.incomeExpenseTrend(); }
+    @GetMapping("/forecast-month") public Object forecastMonth() { return service.forecastMonth(); }
+    @GetMapping("/forecast-daily") public Object forecastDaily() { return service.forecastDaily(); }
+    @GetMapping("/health-score") public Object healthScore() { return service.healthScore(); }
+    @GetMapping("/insights") public Object insights() { return service.insights(); }
 }

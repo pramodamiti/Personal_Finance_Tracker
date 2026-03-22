@@ -4,6 +4,7 @@ import com.personalfinancetracker.app.entity.TransactionType;
 import com.personalfinancetracker.app.repository.TransactionRepository;
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -17,10 +18,12 @@ public class ReportService {
 
     private final TransactionRepository transactionRepository;
     private final AuthFacade authFacade;
+    private final InsightsService insightsService;
 
-    public ReportService(TransactionRepository transactionRepository, AuthFacade authFacade) {
+    public ReportService(TransactionRepository transactionRepository, AuthFacade authFacade, InsightsService insightsService) {
         this.transactionRepository = transactionRepository;
         this.authFacade = authFacade;
+        this.insightsService = insightsService;
     }
 
     @Transactional(readOnly = true)
@@ -99,7 +102,35 @@ public class ReportService {
     }
 
     public List<Map<String, Object>> savingsProgress() {
-        return new ArrayList<>();
+        return incomeVsExpense(LocalDate.now().minusMonths(5).withDayOfMonth(1), LocalDate.now()).stream()
+                .map(row -> {
+                    BigDecimal income = (BigDecimal) row.get("income");
+                    BigDecimal expense = (BigDecimal) row.get("expense");
+                    BigDecimal savingsRate = income.compareTo(BigDecimal.ZERO) == 0
+                            ? BigDecimal.ZERO
+                            : income.subtract(expense).multiply(BigDecimal.valueOf(100)).divide(income, 2, RoundingMode.HALF_UP);
+                    Map<String, Object> item = new LinkedHashMap<>(row);
+                    item.put("savingsRate", savingsRate);
+                    return item;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Object trends(LocalDate from, LocalDate to) {
+        YearMonth fromMonth = YearMonth.from(from);
+        YearMonth toMonth = YearMonth.from(to);
+        return insightsService.trends().stream()
+                .filter(point -> {
+                    YearMonth pointMonth = YearMonth.parse(point.period());
+                    return !pointMonth.isBefore(fromMonth) && !pointMonth.isAfter(toMonth);
+                })
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Object netWorth() {
+        return insightsService.netWorth();
     }
 
     @Transactional(readOnly = true)

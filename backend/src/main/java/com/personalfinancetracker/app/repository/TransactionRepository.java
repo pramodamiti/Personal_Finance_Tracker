@@ -30,4 +30,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
 
     @EntityGraph(attributePaths = {"category", "account", "destinationAccount"})
     List<Transaction> findByUserIdAndTransactionDateBetween(UUID userId, LocalDate start, LocalDate end);
+
+    @EntityGraph(attributePaths = {"category", "account", "destinationAccount"})
+    List<Transaction> findByUserIdAndTransactionDateBetweenOrderByTransactionDateAscCreatedAtAsc(UUID userId, LocalDate start, LocalDate end);
 }

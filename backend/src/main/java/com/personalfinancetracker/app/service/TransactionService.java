@@ -23,10 +23,11 @@ public class TransactionService {
     private final BalanceService balanceService;
     private final AppMapper mapper;
     private final AuditService auditService;
+    private final RulesEngineService rulesEngineService;
 
     public TransactionService(TransactionRepository transactionRepository, AccountService accountService, CategoryService categoryService,
                               RecurringService recurringService, AuthFacade authFacade, BalanceService balanceService,
-                              AppMapper mapper, AuditService auditService) {
+                              AppMapper mapper, AuditService auditService, RulesEngineService rulesEngineService) {
         this.transactionRepository = transactionRepository;
         this.accountService = accountService;
         this.categoryService = categoryService;
@@ -35,6 +36,7 @@ public class TransactionService {
         this.balanceService = balanceService;
         this.mapper = mapper;
         this.auditService = auditService;
+        this.rulesEngineService = rulesEngineService;
     }
 
     @Transactional(readOnly = true)
@@ -53,9 +55,10 @@ public class TransactionService {
     @Transactional
     public TransactionResponse create(TransactionRequest request) {
         Transaction transaction = build(new Transaction(), request);
+        List<String> ruleEvents = rulesEngineService.applyRules(transaction);
         transactionRepository.save(transaction);
         balanceService.apply(transaction);
-        auditService.log(authFacade.currentUser(), "CREATE", "Transaction", transaction.getId(), transaction.getType().name());
+        auditService.log(authFacade.currentUser(), "CREATE", "Transaction", transaction.getId(), ruleEvents.isEmpty() ? transaction.getType().name() : transaction.getType().name() + " | " + String.join("; ", ruleEvents));
         return mapper.toTransaction(transactionRepository.save(transaction));
     }
 
@@ -64,8 +67,9 @@ public class TransactionService {
         Transaction transaction = findEntity(id);
         balanceService.reverse(transaction);
         build(transaction, request);
+        List<String> ruleEvents = rulesEngineService.applyRules(transaction);
         balanceService.apply(transaction);
-        auditService.log(authFacade.currentUser(), "UPDATE", "Transaction", transaction.getId(), transaction.getType().name());
+        auditService.log(authFacade.currentUser(), "UPDATE", "Transaction", transaction.getId(), ruleEvents.isEmpty() ? transaction.getType().name() : transaction.getType().name() + " | " + String.join("; ", ruleEvents));
         return mapper.toTransaction(transactionRepository.save(transaction));
     }
 

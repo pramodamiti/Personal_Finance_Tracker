@@ -438,8 +438,14 @@ function BudgetsPage() {
 
   const budgets = useQuery({ queryKey: ['/budgets', month, year], queryFn: () => fetcher(`/budgets?month=${month}&year=${year}`) });
   const categories = useQuery({ queryKey: ['/categories'], queryFn: () => fetcher('/categories') });
-  const mutation = useMutation({
+  const createBudget = useMutation({
     mutationFn: (payload: any) => api.post('/budgets', payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['/budgets', month, year] });
+    }
+  });
+  const updateBudget = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: any }) => api.put(`/budgets/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['/budgets', month, year] });
     }
@@ -450,7 +456,13 @@ function BudgetsPage() {
     .map((category: any) => ({ value: category.id, label: category.name }));
 
   const rows = Array.isArray(budgets.data) ? budgets.data : budgets.data?.content ?? [];
-  const errorMessage = extractErrorMessage(mutation.error) || extractErrorMessage(budgets.error) || extractErrorMessage(categories.error);
+  const selectedCategoryId = watch('categoryId');
+  const existingBudget = rows.find((row: any) => row.categoryId === selectedCategoryId);
+  const errorMessage =
+    extractErrorMessage(createBudget.error) ||
+    extractErrorMessage(updateBudget.error) ||
+    extractErrorMessage(budgets.error) ||
+    extractErrorMessage(categories.error);
 
   return (
     <div className="space-y-6">
@@ -459,14 +471,32 @@ function BudgetsPage() {
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
         <form
           className="card space-y-3"
-          onSubmit={handleSubmit((values) =>
-            mutation.mutate({
+          onSubmit={handleSubmit((values) => {
+            const payload = {
               categoryId: values.categoryId,
               amount: values.amount,
               budgetMonth: Number(values.budgetMonth),
               budgetYear: Number(values.budgetYear)
-            })
-          )}
+            };
+
+            if (existingBudget) {
+              const shouldUpdate = window.confirm(
+                `Budget already exists for ${existingBudget.categoryName}. Do you want to update it?`
+              );
+
+              if (!shouldUpdate) {
+                return;
+              }
+
+              updateBudget.mutate({
+                id: existingBudget.id,
+                payload
+              });
+              return;
+            }
+
+            createBudget.mutate(payload);
+          })}
         >
           <div>
             <label className="label">Category</label>
@@ -486,8 +516,13 @@ function BudgetsPage() {
               <input type="number" min="2000" className="input" {...register('budgetYear')} />
             </div>
           </div>
-          <button className="btn-primary w-full" disabled={!categoryOptions.length}>
-            Add
+          {existingBudget ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+              A budget already exists for this category in the selected month. Submitting will ask for confirmation to update it.
+            </div>
+          ) : null}
+          <button className="btn-primary w-full" disabled={!categoryOptions.length || createBudget.isPending || updateBudget.isPending}>
+            {createBudget.isPending || updateBudget.isPending ? 'Saving...' : existingBudget ? 'Update budget' : 'Add budget'}
           </button>
           {!categoryOptions.length && <p className="text-sm text-slate-500">Create an expense category first from Categories (created automatically on signup).</p>}
         </form>

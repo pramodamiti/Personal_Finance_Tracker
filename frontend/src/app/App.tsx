@@ -457,7 +457,10 @@ function BudgetsPage() {
 
   const rows = Array.isArray(budgets.data) ? budgets.data : budgets.data?.content ?? [];
   const selectedCategoryId = watch('categoryId');
+  const enteredAmount = Number(watch('amount') || 0);
   const existingBudget = rows.find((row: any) => row.categoryId === selectedCategoryId);
+  const existingBudgetAmount = Number(existingBudget?.amount ?? 0);
+  const combinedBudgetAmount = Number((existingBudgetAmount + enteredAmount).toFixed(2));
   const errorMessage =
     extractErrorMessage(createBudget.error) ||
     extractErrorMessage(updateBudget.error) ||
@@ -472,6 +475,8 @@ function BudgetsPage() {
         <form
           className="card space-y-3"
           onSubmit={handleSubmit((values) => {
+            const requestedAmount = Number(values.amount || 0);
+            const nextBudgetAmount = Number((existingBudgetAmount + requestedAmount).toFixed(2));
             const payload = {
               categoryId: values.categoryId,
               amount: values.amount,
@@ -481,7 +486,7 @@ function BudgetsPage() {
 
             if (existingBudget) {
               const shouldUpdate = window.confirm(
-                `Budget already exists for ${existingBudget.categoryName}. Do you want to update it?`
+                `Budget already exists for ${existingBudget.categoryName}. Current budget is ${formatCurrency(existingBudgetAmount)}. Add ${formatCurrency(requestedAmount)} and update it to ${formatCurrency(nextBudgetAmount)}?`
               );
 
               if (!shouldUpdate) {
@@ -490,7 +495,10 @@ function BudgetsPage() {
 
               updateBudget.mutate({
                 id: existingBudget.id,
-                payload
+                payload: {
+                  ...payload,
+                  amount: nextBudgetAmount.toFixed(2)
+                }
               });
               return;
             }
@@ -518,11 +526,12 @@ function BudgetsPage() {
           </div>
           {existingBudget ? (
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
-              A budget already exists for this category in the selected month. Submitting will ask for confirmation to update it.
+              A budget already exists for this category in the selected month. New entries will be added to the current budget.
+              {enteredAmount > 0 ? ` Current: ${formatCurrency(existingBudgetAmount)}. New total: ${formatCurrency(combinedBudgetAmount)}.` : ''}
             </div>
           ) : null}
           <button className="btn-primary w-full" disabled={!categoryOptions.length || createBudget.isPending || updateBudget.isPending}>
-            {createBudget.isPending || updateBudget.isPending ? 'Saving...' : existingBudget ? 'Update budget' : 'Add budget'}
+            {createBudget.isPending || updateBudget.isPending ? 'Saving...' : existingBudget ? 'Add to budget' : 'Add budget'}
           </button>
           {!categoryOptions.length && <p className="text-sm text-slate-500">Create an expense category first from Categories (created automatically on signup).</p>}
         </form>

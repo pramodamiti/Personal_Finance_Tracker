@@ -6,11 +6,20 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "app")
 public class AppProperties {
+    private String frontendUrl = "http://localhost:1455";
     private final Cors cors = new Cors();
     private final Security security = new Security();
     private final Scheduling scheduling = new Scheduling();
     private final Mail mail = new Mail();
     private final Observability observability = new Observability();
+
+    public String getFrontendUrl() {
+        return frontendUrl;
+    }
+
+    public void setFrontendUrl(String frontendUrl) {
+        this.frontendUrl = frontendUrl;
+    }
 
     public Cors getCors() {
         return cors;

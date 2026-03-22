@@ -2,6 +2,7 @@ import axios from 'axios';
 import { clearAuthSnapshot, getAuthSnapshot, replaceAuthSnapshot } from '../store/authStore';
 
 const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'https://literate-dollop-g4w74qxwv945hr6g-8080.app.github.dev/api';
+export const authProviderBaseUrl = baseURL.replace(/\/api\/?$/, '');
 export const api = axios.create({
   baseURL,
   timeout: 15000

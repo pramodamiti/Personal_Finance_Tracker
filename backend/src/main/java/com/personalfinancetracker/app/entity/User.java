@@ -16,6 +16,10 @@ public class User extends BaseEntity {
     private String displayName;
     @Column(nullable = false)
     private boolean active = true;
+    @Column(name = "google_sub", unique = true)
+    private String googleSub;
+    @Column(name = "google_linked_at")
+    private OffsetDateTime googleLinkedAt;
     @Column(name = "last_login_at")
     private OffsetDateTime lastLoginAt;
 
@@ -27,6 +31,10 @@ public class User extends BaseEntity {
     public void setDisplayName(String displayName) { this.displayName = displayName; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+    public String getGoogleSub() { return googleSub; }
+    public void setGoogleSub(String googleSub) { this.googleSub = googleSub; }
+    public OffsetDateTime getGoogleLinkedAt() { return googleLinkedAt; }
+    public void setGoogleLinkedAt(OffsetDateTime googleLinkedAt) { this.googleLinkedAt = googleLinkedAt; }
     public OffsetDateTime getLastLoginAt() { return lastLoginAt; }
     public void setLastLoginAt(OffsetDateTime lastLoginAt) { this.lastLoginAt = lastLoginAt; }
 }

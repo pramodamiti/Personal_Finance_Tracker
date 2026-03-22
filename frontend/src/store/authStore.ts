@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type User = { id: string; email: string; displayName: string };
+type User = { id: string; email: string; displayName: string; googleLinked?: boolean };
 type StoredAuth = { accessToken?: string; refreshToken?: string; user?: User };
 
 type AuthState = {
@@ -69,3 +69,5 @@ export function clearAuthSnapshot() {
   }
   useAuthStore.setState(emptyAuth);
 }
+
+export type { User };

@@ -1,8 +1,8 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../services/api';
+import { api, authProviderBaseUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { BarChart, Bar, CartesianGrid, Legend, LineChart, Line, PieChart, Pie, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
 import { Navbar, type NavItem } from '../components/Navbar';
@@ -55,6 +55,12 @@ type RuleFormValues = {
   actionType: string;
   actionValue: string;
   isActive: string;
+};
+type OAuthProvider = {
+  id: string;
+  label: string;
+  enabled: boolean;
+  authorizationPath: string;
 };
 
 const transactionTypeOptions = ['EXPENSE', 'INCOME', 'TRANSFER'].map(toOption);
@@ -249,11 +255,19 @@ function AuthPage({ mode }: { mode: 'login' | 'register' | 'forgot' }) {
   const navigate = useNavigate();
   const { register, handleSubmit } = useForm<Record<string, string>>();
   const setAuth = useAuthStore((s) => s.setAuth);
+  const oauthProviders = useQuery({
+    queryKey: ['oauth-providers'],
+    queryFn: () => fetcher('/auth/oauth/providers')
+  });
   const authLinks = [
     { key: 'login', label: 'Login', to: '/login' },
     { key: 'register', label: 'Create account', to: '/register' },
     { key: 'forgot', label: 'Forgot password', to: '/forgot-password' }
   ].filter((link) => link.key !== mode);
+  const googleProvider = (Array.isArray(oauthProviders.data) ? oauthProviders.data : []).find(
+    (provider: OAuthProvider) => provider.id === 'google'
+  );
+  const googleAuthUrl = googleProvider?.authorizationPath ? `${authProviderBaseUrl}${googleProvider.authorizationPath}` : null;
   const mutation = useMutation({
     mutationFn: (payload: any) => api.post(`/auth/${mode === 'register' ? 'register' : mode === 'forgot' ? 'forgot-password' : 'login'}`, payload).then((r) => r.data),
     onSuccess: (data) => {
@@ -311,12 +325,114 @@ function AuthPage({ mode }: { mode: 'login' | 'register' | 'forgot' }) {
                     : 'Login'}
             </button>
           </form>
+          {mode !== 'forgot' ? (
+            <div className="mt-5 space-y-3">
+              <div className="flex items-center gap-3 text-xs uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">
+                <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+                <span>or continue with</span>
+                <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+              </div>
+              {googleProvider?.enabled && googleAuthUrl ? (
+                <button type="button" className="btn-secondary w-full gap-3" onClick={() => { window.location.href = googleAuthUrl; }}>
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[13px] font-bold text-slate-700 dark:bg-slate-200">
+                    G
+                  </span>
+                  <span>Continue with Google</span>
+                </button>
+              ) : (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300">
+                  Google sign-in is not configured yet.
+                </div>
+              )}
+              <p className="text-xs leading-6 text-slate-500 dark:text-slate-400">
+                If your Google email already exists in the app, it will automatically link to the same account.
+              </p>
+            </div>
+          ) : null}
           <div className="mt-5 flex flex-wrap gap-3 text-sm">
             {authLinks.map((link) => (
               <NavLink key={link.key} className="text-primary underline-offset-4 hover:underline" to={link.to}>
                 {link.label}
               </NavLink>
             ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OAuthCallbackPage() {
+  const navigate = useNavigate();
+  const setAuth = useAuthStore((state) => state.setAuth);
+  const [error, setError] = useState<string>();
+
+  useEffect(() => {
+    const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
+    const search = window.location.search.startsWith('?') ? window.location.search.slice(1) : '';
+    const params = new URLSearchParams(hash || search);
+    const oauthError = params.get('error');
+
+    if (oauthError) {
+      setError(oauthError);
+      return;
+    }
+
+    const accessToken = params.get('accessToken');
+    const refreshToken = params.get('refreshToken');
+    const userId = params.get('userId');
+    const email = params.get('email');
+    const displayName = params.get('displayName');
+    const googleLinked = params.get('googleLinked') === 'true';
+
+    if (!accessToken || !refreshToken || !userId || !email || !displayName) {
+      setError('Google sign-in did not return a complete session. Please try again.');
+      return;
+    }
+
+    setAuth({
+      accessToken,
+      refreshToken,
+      user: {
+        id: userId,
+        email,
+        displayName,
+        googleLinked
+      }
+    });
+
+    window.history.replaceState(null, '', '/oauth/callback');
+    navigate('/', { replace: true });
+  }, [navigate, setAuth]);
+
+  return (
+    <div className="min-h-screen overflow-hidden px-4 py-10">
+      <div className="ambient ambient-one" />
+      <div className="ambient ambient-two" />
+      <div className="auth-shell lg:grid-cols-[minmax(0,1fr)]">
+        <div className="auth-card mx-auto w-full max-w-xl">
+          <div className="kicker">Google Sign-In</div>
+          <h2 className="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">
+            {error ? 'Sign-in could not be completed' : 'Signing you in'}
+          </h2>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            {error ? 'There was a problem while finishing Google sign-in.' : 'Please wait while we finish your session.'}
+          </p>
+          <div className="mt-6">
+            {error ? (
+              <>
+                <ErrorBanner message={error} />
+                <div className="mt-5 flex flex-wrap gap-3 text-sm">
+                  <NavLink className="text-primary underline-offset-4 hover:underline" to="/login">
+                    Back to login
+                  </NavLink>
+                </div>
+              </>
+            ) : (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300">
+                Finalizing your secure sign-in and linking your account if needed.
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1040,7 +1156,7 @@ function RulesPage() {
 
 function SettingsPage() {
   const { user, logout } = useAuthStore();
-  return <div className="space-y-6"><PageHeader eyebrow="Profile & Environment" title="Settings" description="Basic profile and environment information." /><div className="card max-w-xl"><div className="mt-4 space-y-4 text-sm"><div><strong>Name:</strong> {user?.displayName}</div><div><strong>Email:</strong> {user?.email}</div><div><strong>Reset flow:</strong> MailHog or backend console token output.</div><button type="button" className="btn-secondary mt-4 w-full sm:w-auto" onClick={logout}>Logout</button></div></div></div>;
+  return <div className="space-y-6"><PageHeader eyebrow="Profile & Environment" title="Settings" description="Basic profile and environment information." /><div className="card max-w-xl"><div className="mt-4 space-y-4 text-sm"><div><strong>Name:</strong> {user?.displayName}</div><div><strong>Email:</strong> {user?.email}</div><div><strong>Google sign-in:</strong> {user?.googleLinked ? 'Linked' : 'Not linked'}</div>{!user?.googleLinked ? <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300">Use Continue with Google on the login page with the same email address to link your Google account.</div> : null}<div><strong>Reset flow:</strong> MailHog or backend console token output.</div><button type="button" className="btn-secondary mt-4 w-full sm:w-auto" onClick={logout}>Logout</button></div></div></div>;
 }
 
 function Protected() {
@@ -1050,5 +1166,5 @@ function Protected() {
 }
 
 export function App() {
-  return <Routes><Route path="/login" element={<AuthPage mode="login" />} /><Route path="/register" element={<AuthPage mode="register" />} /><Route path="/forgot-password" element={<AuthPage mode="forgot" />} /><Route path="*" element={<Protected />} /></Routes>;
+  return <Routes><Route path="/login" element={<AuthPage mode="login" />} /><Route path="/register" element={<AuthPage mode="register" />} /><Route path="/forgot-password" element={<AuthPage mode="forgot" />} /><Route path="/oauth/callback" element={<OAuthCallbackPage />} /><Route path="*" element={<Protected />} /></Routes>;
 }

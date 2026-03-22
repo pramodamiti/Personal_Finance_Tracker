@@ -4,7 +4,9 @@ import com.personalfinancetracker.app.dto.CommonDtos.*;
 import com.personalfinancetracker.app.entity.User;
 import com.personalfinancetracker.app.service.AuthService;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,4 +22,15 @@ public class AuthController {
     @PostMapping("/forgot-password") public Map<String, String> forgot(@Valid @RequestBody ForgotPasswordRequest request) { authService.forgotPassword(request); return Map.of("message", "If the email exists, reset instructions have been sent."); }
     @PostMapping("/reset-password") public Map<String, String> reset(@Valid @RequestBody ResetPasswordRequest request) { authService.resetPassword(request); return Map.of("message", "Password reset successful"); }
     @GetMapping("/me") public UserResponse me(@AuthenticationPrincipal User user) { return authService.me(user); }
+    @GetMapping("/oauth/providers")
+    public List<OAuthProviderResponse> oauthProviders(
+            @Value("${GOOGLE_CLIENT_ID:}") String googleClientId,
+            @Value("${GOOGLE_CLIENT_SECRET:}") String googleClientSecret) {
+        boolean googleEnabled = isConfigured(googleClientId) && isConfigured(googleClientSecret);
+        return List.of(new OAuthProviderResponse("google", "Google", googleEnabled, "/oauth2/authorization/google"));
+    }
+
+    private boolean isConfigured(String value) {
+        return value != null && !value.isBlank() && !value.startsWith("replace-with-");
+    }
 }

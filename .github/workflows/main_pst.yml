@@ -79,6 +79,67 @@ jobs:
           fi
           echo "resource_group=${RESOURCE_GROUP}" >> "$GITHUB_OUTPUT"
 
+      - name: Show App Service status details
+        shell: bash
+        run: |
+          app_json=$(az webapp show \
+            --name "${APP_NAME}" \
+            --resource-group "${{ steps.app-service.outputs.resource_group }}" \
+            --query "{name:name,state:state,availabilityState:availabilityState,serverFarmId:serverFarmId,defaultHostName:defaultHostName}" \
+            -o json)
+
+          echo "App Service details:"
+          echo "${app_json}"
+
+          plan_id=$(az webapp show \
+            --name "${APP_NAME}" \
+            --resource-group "${{ steps.app-service.outputs.resource_group }}" \
+            --query "serverFarmId" \
+            -o tsv)
+
+          if [[ -n "${plan_id}" ]]; then
+            plan_name="${plan_id##*/}"
+            echo "App Service plan details:"
+            az appservice plan show \
+              --name "${plan_name}" \
+              --resource-group "${{ steps.app-service.outputs.resource_group }}" \
+              --query "{name:name,status:status,sku:sku.name,tier:sku.tier,numberOfWorkers:numberOfWorkers}" \
+              -o json
+          fi
+
+      - name: Ensure Azure Web App is running
+        shell: bash
+        run: |
+          current_state=$(az webapp show \
+            --name "${APP_NAME}" \
+            --resource-group "${{ steps.app-service.outputs.resource_group }}" \
+            --query "state" \
+            -o tsv)
+
+          echo "Current App Service state: ${current_state}"
+
+          if [[ "${current_state}" != "Running" ]]; then
+            echo "Attempting to start Azure Web App '${APP_NAME}'..."
+            az webapp start \
+              --name "${APP_NAME}" \
+              --resource-group "${{ steps.app-service.outputs.resource_group }}"
+            sleep 15
+          fi
+
+          final_state=$(az webapp show \
+            --name "${APP_NAME}" \
+            --resource-group "${{ steps.app-service.outputs.resource_group }}" \
+            --query "state" \
+            -o tsv)
+
+          echo "App Service state before deployment: ${final_state}"
+
+          if [[ "${final_state}" != "Running" ]]; then
+            echo "Azure Web App '${APP_NAME}' is not in Running state, so OneDeploy will fail." >&2
+            echo "If you are on a Free or Shared plan, check whether the app hit quota limits or was stopped/disabled in Azure." >&2
+            exit 1
+          fi
+
       - name: Validate effective production settings
         shell: bash
         run: |

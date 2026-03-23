@@ -29,8 +29,13 @@ A full-stack monorepo implementation of a V1 personal finance tracker using Reac
 /
 ├── README.md
 ├── .gitignore
-├── .env.example
-├── docker-compose.yml
+├── .github/
+│   └── workflows/
+├── docs/
+│   └── azure-production.md
+├── infra/
+│   └── azure/
+│       └── terraform/
 ├── backend/
 │   ├── pom.xml
 │   ├── mvnw
@@ -44,37 +49,38 @@ A full-stack monorepo implementation of a V1 personal finance tracker using Reac
     ├── tailwind.config.js
     ├── postcss.config.js
     ├── .env.example
+    ├── public/
     └── src/
 ```
 
-## Codespaces + Neon setup
+## Local setup
 
 ### Prerequisites
 - Node.js 18+
 - Java 21+
 - Maven 3.9+
-- A Neon PostgreSQL database
+- PostgreSQL 16+ or Azure Database for PostgreSQL
 
 ### 1. Configure environment
 Copy the examples if desired:
 
 ```bash
-cp .env.example .env
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 ```
 
-Set the backend to your Neon JDBC values and your Codespaces frontend URL. Set the frontend API URL to your forwarded backend URL.
+Set the backend datasource values and the frontend API URL for your environment.
 
 Example:
 
 ```bash
-export SPRING_DATASOURCE_URL='jdbc:postgresql://ep-your-neon-endpoint.eastus2.azure.neon.tech/neondb?sslmode=require&channel_binding=require'
-export SPRING_DATASOURCE_USERNAME='neondb_owner'
-export SPRING_DATASOURCE_PASSWORD='your-neon-password'
-export APP_FRONTEND_URL='https://your-codespace-name-1455.app.github.dev'
+export SPRING_DATASOURCE_URL='jdbc:postgresql://localhost:5432/personal_finance_tracker'
+export SPRING_DATASOURCE_USERNAME='postgres'
+export SPRING_DATASOURCE_PASSWORD='postgres'
+export APP_FRONTEND_URL='http://localhost:1455'
 export JWT_SECRET='change-me-super-secret-key-change-me-super-secret-key'
 export SPRING_PROFILES_ACTIVE='local'
+export VITE_API_BASE_URL='http://localhost:8080/api'
 ```
 
 ### 2. Run the backend
@@ -84,8 +90,8 @@ cd backend
 ```
 
 Backend URLs:
-- API: `https://literate-dollop-g4w74qxwv945hr6g-8080.app.github.dev/`
-- Swagger UI: `https://friendly-pancake-69749gv7xp9qhrwx-8080.app.github.dev/swagger-ui.html`
+- API: `http://localhost:8080/`
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
 
 ### 3. Run the frontend
 ```bash
@@ -95,7 +101,11 @@ npm run dev
 ```
 
 Frontend URL:
-- `https://your-codespace-name-1455.app.github.dev`
+- `http://localhost:1455`
+
+## Azure deployment
+
+Use the Azure-specific deployment guide in `docs/azure-production.md`.
 
 ## Product scope implemented
 
@@ -124,7 +134,7 @@ Frontend URL:
 
 ## Implementation decisions and assumptions
 
-- **Forgot password delivery:** local development uses a practical dev flow. A reset token is generated and printed by the backend, and MailHog is included in Docker Compose for teams that want SMTP inspection.
+- **Forgot password delivery:** local development can use reset token logging when `APP_SECURITY_LOG_PASSWORD_RESET_TOKENS=true`. Production should use a real email delivery provider.
 - **Default categories:** users receive a starter category set on registration.
 - **Tags:** PostgreSQL `text[]` is used for transaction tags to keep the schema compact.
 - **Recurring processing:** scheduler safety now uses distributed locking so multiple replicas can share the same PostgreSQL database safely.
@@ -210,4 +220,4 @@ Small non-blocking next steps if you want to keep iterating:
 - Add richer edit/delete UI flows and modal-based resource forms on the frontend.
 - Expand automated backend and frontend tests.
 - Harden report endpoints with database-level aggregate queries instead of in-memory aggregation.
-- Add production email templates and Codespaces-friendly dev mail handling if you need password reset email testing without SMTP.
+- Add production email templates and SMTP or Azure Communication Services integration if you need password reset email delivery.

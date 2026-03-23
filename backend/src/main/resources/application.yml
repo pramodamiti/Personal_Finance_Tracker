@@ -2,9 +2,9 @@ spring:
   application:
     name: personal-finance-tracker-backend
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://ep-your-neon-endpoint.eastus2.azure.neon.tech/neondb?sslmode=require}
-    username: ${SPRING_DATASOURCE_USERNAME:neondb_owner}
-    password: ${SPRING_DATASOURCE_PASSWORD:replace-with-your-neon-password}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/personal_finance_tracker}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
   jpa:
     open-in-view: false
     hibernate:

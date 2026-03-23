@@ -89,22 +89,18 @@ jobs:
             JWT_SECRET
           )
 
+          existing_names=$(az webapp config appsettings list \
+            --name "${APP_NAME}" \
+            --resource-group "${{ steps.app-service.outputs.resource_group }}" \
+            --query "[].name" \
+            -o tsv)
+
           missing=()
-          effective_datasource_url=""
           for var_name in "${required_vars[@]}"; do
             if [[ -z "${!var_name}" ]]; then
-              current_value=$(az webapp config appsettings list \
-                --name "${APP_NAME}" \
-                --resource-group "${{ steps.app-service.outputs.resource_group }}" \
-                --query "[?name=='${var_name}'].value | [0]" \
-                -o tsv)
-              if [[ -z "${current_value}" ]]; then
+              if ! printf '%s\n' "${existing_names}" | grep -Fxq "${var_name}"; then
                 missing+=("$var_name")
-              elif [[ "${var_name}" == "SPRING_DATASOURCE_URL" ]]; then
-                effective_datasource_url="${current_value}"
               fi
-            elif [[ "${var_name}" == "SPRING_DATASOURCE_URL" ]]; then
-              effective_datasource_url="${!var_name}"
             fi
           done
 
@@ -114,12 +110,17 @@ jobs:
             exit 1
           fi
 
-          if [[ "${effective_datasource_url}" != jdbc:postgresql://* ]]; then
+          if [[ -z "${SPRING_DATASOURCE_URL}" ]]; then
+            echo "Using Azure Web App app settings for datasource secrets; skipping JDBC URL value validation because Azure CLI redacts app setting values." >&2
+            exit 0
+          fi
+
+          if [[ "${SPRING_DATASOURCE_URL}" != jdbc:postgresql://* ]]; then
             echo "SPRING_DATASOURCE_URL must be a full PostgreSQL JDBC URL starting with 'jdbc:postgresql://'." >&2
             exit 1
           fi
 
-          if [[ "${effective_datasource_url}" == *".postgres.database.azure.com.postgres.database.azure.com"* ]]; then
+          if [[ "${SPRING_DATASOURCE_URL}" == *".postgres.database.azure.com.postgres.database.azure.com"* ]]; then
             echo "SPRING_DATASOURCE_URL contains a duplicated Azure Database for PostgreSQL host suffix." >&2
             echo "Use the server host only once, for example: jdbc:postgresql://<server>.postgres.database.azure.com:5432/<database>?sslmode=require" >&2
             exit 1
@@ -159,6 +160,16 @@ jobs:
             --resource-group "${{ steps.app-service.outputs.resource_group }}" \
             --settings "${settings[@]}"
 
+      - name: Enable App Service log streaming
+        shell: bash
+        run: |
+          az webapp log config \
+            --name "${APP_NAME}" \
+            --resource-group "${{ steps.app-service.outputs.resource_group }}" \
+            --application-logging filesystem \
+            --docker-container-logging filesystem \
+            --level information
+
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
@@ -172,6 +183,7 @@ jobs:
         run: |
           for attempt in $(seq 1 18); do
             status=$(curl -ksS -o /dev/null -w "%{http_code}" "${APP_URL}/actuator/health" || true)
+            echo "Health check attempt ${attempt}: HTTP ${status:-000}"
             if [[ "$status" == "200" ]]; then
               exit 0
             fi
@@ -180,4 +192,16 @@ jobs:
 
           echo "Azure Web App did not become healthy at ${APP_URL}/actuator/health" >&2
           exit 1
+
+      - name: Dump App Service logs on failure
+        if: ${{ failure() }}
+        shell: bash
+        run: |
+          echo "Recent response from health endpoint:"
+          curl -ksS -i "${APP_URL}/actuator/health" || true
+          echo
+          echo "Tailing Azure Web App logs for diagnostics:"
+          timeout 45s az webapp log tail \
+            --name "${APP_NAME}" \
+            --resource-group "${{ steps.app-service.outputs.resource_group }}" || true
           

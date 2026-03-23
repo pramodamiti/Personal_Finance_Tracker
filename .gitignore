@@ -20,3 +20,4 @@ frontend/.env
 .dev.vars*
 !.dev.vars.example
 !.env.example
+.m2

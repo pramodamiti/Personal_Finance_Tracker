@@ -79,7 +79,7 @@ jobs:
           fi
           echo "resource_group=${RESOURCE_GROUP}" >> "$GITHUB_OUTPUT"
 
-      - name: Validate required production settings
+      - name: Validate effective production settings
         shell: bash
         run: |
           required_vars=(
@@ -90,24 +90,36 @@ jobs:
           )
 
           missing=()
+          effective_datasource_url=""
           for var_name in "${required_vars[@]}"; do
             if [[ -z "${!var_name}" ]]; then
-              missing+=("$var_name")
+              current_value=$(az webapp config appsettings list \
+                --name "${APP_NAME}" \
+                --resource-group "${{ steps.app-service.outputs.resource_group }}" \
+                --query "[?name=='${var_name}'].value | [0]" \
+                -o tsv)
+              if [[ -z "${current_value}" ]]; then
+                missing+=("$var_name")
+              elif [[ "${var_name}" == "SPRING_DATASOURCE_URL" ]]; then
+                effective_datasource_url="${current_value}"
+              fi
+            elif [[ "${var_name}" == "SPRING_DATASOURCE_URL" ]]; then
+              effective_datasource_url="${!var_name}"
             fi
           done
 
           if (( ${#missing[@]} > 0 )); then
-            printf 'Missing required GitHub Actions secrets for Azure Web App startup:\n' >&2
+            printf 'Missing required runtime settings. Add them either as GitHub Actions secrets or as Azure Web App app settings:\n' >&2
             printf '  - %s\n' "${missing[@]}" >&2
             exit 1
           fi
 
-          if [[ "${SPRING_DATASOURCE_URL}" != jdbc:postgresql://* ]]; then
+          if [[ "${effective_datasource_url}" != jdbc:postgresql://* ]]; then
             echo "SPRING_DATASOURCE_URL must be a full PostgreSQL JDBC URL starting with 'jdbc:postgresql://'." >&2
             exit 1
           fi
 
-          if [[ "${SPRING_DATASOURCE_URL}" == *".postgres.database.azure.com.postgres.database.azure.com"* ]]; then
+          if [[ "${effective_datasource_url}" == *".postgres.database.azure.com.postgres.database.azure.com"* ]]; then
             echo "SPRING_DATASOURCE_URL contains a duplicated Azure Database for PostgreSQL host suffix." >&2
             echo "Use the server host only once, for example: jdbc:postgresql://<server>.postgres.database.azure.com:5432/<database>?sslmode=require" >&2
             exit 1
@@ -120,14 +132,26 @@ jobs:
             "SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}"
             "SPRINGDOC_SWAGGER_UI_ENABLED=${SPRINGDOC_SWAGGER_UI_ENABLED}"
             "SPRINGDOC_API_DOCS_ENABLED=${SPRINGDOC_API_DOCS_ENABLED}"
-            "SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}"
-            "SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}"
-            "SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}"
-            "JWT_SECRET=${JWT_SECRET}"
           )
 
           if [[ -n "${APP_FRONTEND_URL}" ]]; then
             settings+=("APP_FRONTEND_URL=${APP_FRONTEND_URL}")
+          fi
+
+          if [[ -n "${SPRING_DATASOURCE_URL}" ]]; then
+            settings+=("SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}")
+          fi
+
+          if [[ -n "${SPRING_DATASOURCE_USERNAME}" ]]; then
+            settings+=("SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}")
+          fi
+
+          if [[ -n "${SPRING_DATASOURCE_PASSWORD}" ]]; then
+            settings+=("SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}")
+          fi
+
+          if [[ -n "${JWT_SECRET}" ]]; then
+            settings+=("JWT_SECRET=${JWT_SECRET}")
           fi
 
           az webapp config appsettings set \

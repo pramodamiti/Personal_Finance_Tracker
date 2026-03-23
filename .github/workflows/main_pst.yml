@@ -39,6 +39,17 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
+    env:
+      APP_NAME: pst
+      APP_URL: https://pst-dug9c6gfbvd4facx.centralindia-01.azurewebsites.net
+      SPRING_PROFILES_ACTIVE: production
+      SPRINGDOC_SWAGGER_UI_ENABLED: 'false'
+      SPRINGDOC_API_DOCS_ENABLED: 'false'
+      SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
+      SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+      SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      APP_FRONTEND_URL: ${{ vars.APP_FRONTEND_URL }}
     permissions:
       id-token: write #This is required for requesting the JWT
       contents: read #This is required for actions/checkout
@@ -57,6 +68,73 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_A4E3E4FE06ED41419C9CE5FF19B24460 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_785FD1D9EF7F45838B17BC81E4B4C62A }}
 
+      - name: Resolve web app resource group
+        id: app-service
+        shell: bash
+        run: |
+          RESOURCE_GROUP=$(az webapp list --query "[?name=='${APP_NAME}'].resourceGroup | [0]" -o tsv)
+          if [[ -z "$RESOURCE_GROUP" ]]; then
+            echo "Unable to find resource group for Azure Web App '${APP_NAME}'." >&2
+            exit 1
+          fi
+          echo "resource_group=${RESOURCE_GROUP}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate required production settings
+        shell: bash
+        run: |
+          required_vars=(
+            SPRING_DATASOURCE_URL
+            SPRING_DATASOURCE_USERNAME
+            SPRING_DATASOURCE_PASSWORD
+            JWT_SECRET
+          )
+
+          missing=()
+          for var_name in "${required_vars[@]}"; do
+            if [[ -z "${!var_name}" ]]; then
+              missing+=("$var_name")
+            fi
+          done
+
+          if (( ${#missing[@]} > 0 )); then
+            printf 'Missing required GitHub Actions secrets for Azure Web App startup:\n' >&2
+            printf '  - %s\n' "${missing[@]}" >&2
+            exit 1
+          fi
+
+          if [[ "${SPRING_DATASOURCE_URL}" != jdbc:postgresql://* ]]; then
+            echo "SPRING_DATASOURCE_URL must be a full PostgreSQL JDBC URL starting with 'jdbc:postgresql://'." >&2
+            exit 1
+          fi
+
+          if [[ "${SPRING_DATASOURCE_URL}" == *".postgres.database.azure.com.postgres.database.azure.com"* ]]; then
+            echo "SPRING_DATASOURCE_URL contains a duplicated Azure Database for PostgreSQL host suffix." >&2
+            echo "Use the server host only once, for example: jdbc:postgresql://<server>.postgres.database.azure.com:5432/<database>?sslmode=require" >&2
+            exit 1
+          fi
+
+      - name: Configure Azure Web App app settings
+        shell: bash
+        run: |
+          settings=(
+            "SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}"
+            "SPRINGDOC_SWAGGER_UI_ENABLED=${SPRINGDOC_SWAGGER_UI_ENABLED}"
+            "SPRINGDOC_API_DOCS_ENABLED=${SPRINGDOC_API_DOCS_ENABLED}"
+            "SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}"
+            "SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}"
+            "SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}"
+            "JWT_SECRET=${JWT_SECRET}"
+          )
+
+          if [[ -n "${APP_FRONTEND_URL}" ]]; then
+            settings+=("APP_FRONTEND_URL=${APP_FRONTEND_URL}")
+          fi
+
+          az webapp config appsettings set \
+            --name "${APP_NAME}" \
+            --resource-group "${{ steps.app-service.outputs.resource_group }}" \
+            --settings "${settings[@]}"
+
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
@@ -64,4 +142,18 @@ jobs:
           app-name: 'pst'
           slot-name: 'Production'
           package: 'java-app/*.jar'
+
+      - name: Verify application health
+        shell: bash
+        run: |
+          for attempt in $(seq 1 18); do
+            status=$(curl -ksS -o /dev/null -w "%{http_code}" "${APP_URL}/actuator/health" || true)
+            if [[ "$status" == "200" ]]; then
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "Azure Web App did not become healthy at ${APP_URL}/actuator/health" >&2
+          exit 1
           

@@ -86,6 +86,28 @@ public class AuthService {
     }
 
     @Transactional
+    public AuthResponse loginWithGoogle(String googleSubject, String email, String displayName) {
+        if (googleSubject == null || googleSubject.isBlank()) {
+            throw new ApiException("Google account identifier is missing");
+        }
+
+        String normalizedEmail = normalizeEmail(email);
+        if (normalizedEmail.isBlank()) {
+            throw new ApiException("Google account email is missing");
+        }
+
+        User user = userRepository.findByGoogleSub(googleSubject)
+                .map(existingUser -> ensureGoogleAccountMatchesEmail(existingUser, normalizedEmail))
+                .orElseGet(() -> userRepository.findByEmailIgnoreCase(normalizedEmail)
+                        .map(existingUser -> linkGoogleAccount(existingUser, googleSubject))
+                        .orElseGet(() -> createGoogleUser(googleSubject, normalizedEmail, displayName)));
+
+        user.setLastLoginAt(OffsetDateTime.now());
+        userRepository.save(user);
+        return issueTokens(user);
+    }
+
+    @Transactional
     public AuthResponse refresh(RefreshRequest request) {
         RefreshToken token = refreshTokenRepository.findByToken(request.refreshToken()).filter(t -> !t.isRevoked() && t.getExpiresAt().isAfter(OffsetDateTime.now())).orElseThrow(() -> new ApiException("Invalid refresh token"));
         return issueTokens(loadManagedUser(token.getUser().getId()));
@@ -141,6 +163,51 @@ public class AuthService {
 
     private User loadManagedUser(UUID userId) {
         return userRepository.findById(userId).orElseThrow(() -> new ApiException("User not found"));
+    }
+
+    private User ensureGoogleAccountMatchesEmail(User user, String normalizedEmail) {
+        userRepository.findByEmailIgnoreCase(normalizedEmail).ifPresent(existingUser -> {
+            if (!existingUser.getId().equals(user.getId())) {
+                throw new ApiException("This Google account is already linked to another user.");
+            }
+        });
+        return user;
+    }
+
+    private User linkGoogleAccount(User user, String googleSubject) {
+        if (user.getGoogleSub() != null && !user.getGoogleSub().equals(googleSubject)) {
+            throw new ApiException("This email is already linked to another Google account.");
+        }
+        user.setGoogleSub(googleSubject);
+        if (user.getGoogleLinkedAt() == null) {
+            user.setGoogleLinkedAt(OffsetDateTime.now());
+        }
+        return user;
+    }
+
+    private User createGoogleUser(String googleSubject, String email, String displayName) {
+        User user = new User();
+        user.setEmail(email);
+        user.setDisplayName(resolveDisplayName(displayName, email));
+        user.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
+        user.setGoogleSub(googleSubject);
+        user.setGoogleLinkedAt(OffsetDateTime.now());
+        user.setLastLoginAt(OffsetDateTime.now());
+        userRepository.save(user);
+        seedDefaultCategories(user);
+        return user;
+    }
+
+    private String normalizeEmail(String email) {
+        return email == null ? "" : email.trim().toLowerCase();
+    }
+
+    private String resolveDisplayName(String displayName, String email) {
+        if (displayName != null && !displayName.isBlank()) {
+            return displayName.trim();
+        }
+        int atIndex = email.indexOf('@');
+        return atIndex > 0 ? email.substring(0, atIndex) : email;
     }
 
     private void seedDefaultCategories(User user) {

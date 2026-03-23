@@ -6,11 +6,20 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "app")
 public class AppProperties {
+    private String frontendUrl = "http://localhost:1455";
     private final Cors cors = new Cors();
     private final Security security = new Security();
     private final Scheduling scheduling = new Scheduling();
     private final Mail mail = new Mail();
     private final Observability observability = new Observability();
+
+    public String getFrontendUrl() {
+        return frontendUrl;
+    }
+
+    public void setFrontendUrl(String frontendUrl) {
+        this.frontendUrl = frontendUrl;
+    }
 
     public Cors getCors() {
         return cors;
@@ -34,6 +43,7 @@ public class AppProperties {
 
     public static class Cors {
         private List<String> allowedOrigins = new ArrayList<>(List.of("http://localhost:5173"));
+        private List<String> allowedOriginPatterns = new ArrayList<>();
 
         public List<String> getAllowedOrigins() {
             return allowedOrigins;
@@ -41,6 +51,14 @@ public class AppProperties {
 
         public void setAllowedOrigins(List<String> allowedOrigins) {
             this.allowedOrigins = allowedOrigins;
+        }
+
+        public List<String> getAllowedOriginPatterns() {
+            return allowedOriginPatterns;
+        }
+
+        public void setAllowedOriginPatterns(List<String> allowedOriginPatterns) {
+            this.allowedOriginPatterns = allowedOriginPatterns;
         }
     }
 

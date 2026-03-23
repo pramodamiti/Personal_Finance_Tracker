@@ -87,8 +87,8 @@ public class RecurringService {
         recurring.setCategory(request.categoryId() == null ? null : categoryService.findEntity(request.categoryId()));
         recurring.setMerchant(request.merchant());
         recurring.setNote(request.note());
-        recurring.setAutoCreateTransaction(request.autoCreateTransaction());
-        recurring.setActive(request.active());
+        recurring.setAutoCreateTransaction(request.autoCreateTransaction() == null ? true : request.autoCreateTransaction());
+        recurring.setActive(request.active() == null ? true : request.active());
     }
 
     @Transactional(readOnly = true)

@@ -31,6 +31,17 @@ spring:
       write-dates-as-timestamps: false
   lifecycle:
     timeout-per-shutdown-phase: 30s
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:replace-with-google-client-id}
+            client-secret: ${GOOGLE_CLIENT_SECRET:replace-with-google-client-secret}
+            scope:
+              - openid
+              - profile
+              - email
 server:
   port: ${PORT:8080}
   shutdown: graceful
@@ -71,6 +82,7 @@ logging:
     org.springframework.web: INFO
     com.personalfinancetracker: INFO
 app:
+  frontend-url: ${APP_FRONTEND_URL:http://localhost:1455}
   cors:
     allowed-origins:
       - ${APP_FRONTEND_URL:http://localhost:1455}

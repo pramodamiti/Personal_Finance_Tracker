@@ -32,7 +32,6 @@
             ├── main.tf
             ├── outputs.tf
             ├── production.tfvars.example
-            ├── staging.tfvars.example
             ├── variables.tf
             └── versions.tf
 ```
@@ -40,7 +39,7 @@
 ## Architecture summary
 
 - Backend runs on Azure Container Apps with multiple revisions enabled for zero-downtime rollouts.
-- Frontend runs on Azure Static Web Apps and talks to the backend through an environment-specific API base URL.
+- Frontend runs on Azure Static Web Apps and talks to the backend through the production API base URL.
 - PostgreSQL runs on Azure Database for PostgreSQL Flexible Server.
 - Secrets are generated into Azure Key Vault and referenced from Container Apps through a user-assigned managed identity.
 - Logs flow to stdout in JSON for Azure Monitor and Log Analytics ingestion.
@@ -115,8 +114,8 @@ Added:
 
 The backend is configured with:
 
-- Minimum replicas: staging `2`, production `3`
-- Maximum replicas: staging `6`, production `12`
+- Minimum replicas: production `3`
+- Maximum replicas: production `12`
 - HTTP concurrency scaling rule
 - CPU utilization scale rule at `70%`
 - Memory utilization scale rule at `80%`
@@ -160,7 +159,7 @@ The GitHub deployment identity also needs role-assignment capability. In real pr
 
 Prefer federated credentials with `azure/login` OIDC rather than a long-lived client secret.
 
-### 4. Create GitHub federated credentials
+### 4. Create GitHub federated credential
 
 ```bash
 az ad app federated-credential create \
@@ -171,15 +170,6 @@ az ad app federated-credential create \
     "subject":"repo:<ORG>/<REPO>:environment:production",
     "audiences":["api://AzureADTokenExchange"]
   }'
-
-az ad app federated-credential create \
-  --id <APP_REGISTRATION_OBJECT_ID> \
-  --parameters '{
-    "name":"github-develop",
-    "issuer":"https://token.actions.githubusercontent.com",
-    "subject":"repo:<ORG>/<REPO>:environment:staging",
-    "audiences":["api://AzureADTokenExchange"]
-  }'
 ```
 
 ### 5. Initialize Terraform
@@ -187,27 +177,24 @@ az ad app federated-credential create \
 ```bash
 cd infra/azure/terraform
 terraform init -backend-config=backend.hcl.example
-terraform plan -var-file=staging.tfvars
-terraform apply -var-file=staging.tfvars
 terraform plan -var-file=production.tfvars
 terraform apply -var-file=production.tfvars
 ```
 
 ## GitHub environment configuration
 
-Create two GitHub Environments:
+Create one GitHub Environment:
 
-- `staging`
 - `production`
 
-For each environment set secrets:
+Set these GitHub Environment secrets:
 
 - `AZURE_CLIENT_ID`
 - `AZURE_TENANT_ID`
 - `AZURE_SUBSCRIPTION_ID`
 - `AZURE_STATIC_WEB_APPS_API_TOKEN`
 
-For each environment set variables:
+Set these GitHub Environment variables:
 
 - `ACR_NAME`
 - `ACR_LOGIN_SERVER`
@@ -223,21 +210,20 @@ Populate them from `terraform output`.
 
 ### First-time infrastructure rollout
 
-1. Copy `staging.tfvars.example` to `staging.tfvars` and `production.tfvars.example` to `production.tfvars`.
+1. Copy `production.tfvars.example` to `production.tfvars`.
 2. Set the subscription and alert values.
-3. Run Terraform apply for staging, validate, then run it for production.
-4. Capture Terraform outputs and load them into GitHub Environment variables and secrets.
+3. Run Terraform apply for production.
+4. Capture Terraform outputs and load them into the GitHub `production` environment variables and secrets.
 
 ### Backend deployment
 
-1. Push to `develop` to deploy staging.
-2. Push to `main` to deploy production.
-3. The workflow runs `mvn verify`, builds the backend image, pushes `${GITHUB_SHA}` and `latest`, updates Container Apps, then shifts 100% of traffic to the newest ready revision.
+1. Push to `main` to deploy production, or run the workflow manually.
+2. The workflow runs `mvn verify`, builds the backend image, pushes `${GITHUB_SHA}` and `latest`, updates Container Apps, then shifts 100% of traffic to the newest ready revision.
 
 ### Frontend deployment
 
-1. Set `VITE_API_BASE_URL` per GitHub Environment.
-2. Push the branch or run the workflow manually.
+1. Set `VITE_API_BASE_URL` in the GitHub `production` environment.
+2. Push `main` or run the workflow manually.
 3. Static Web Apps builds and publishes the frontend separately from the backend.
 
 ## Rollback strategy
@@ -247,20 +233,8 @@ Populate them from `terraform output`.
 Container Apps keeps prior revisions. To roll back:
 
 1. Open the `backend-cicd` workflow manually.
-2. Select the environment.
-3. Provide the previous image SHA in `image_tag`.
-4. Re-run deployment.
-
-### Blue-green operating model
-
-Use staging as the green validation lane and production as the blue serving lane:
-
-1. Ship every commit to staging from `develop`.
-2. Run smoke tests and API tests on staging.
-3. Promote the known-good commit to `main`.
-4. Production creates a fresh revision and only shifts traffic after the rollout completes.
-
-If you want literal same-environment blue-green traffic labels, extend the workflow to pin revisions to `blue` and `green` labels and flip Front Door origin routing only after canary validation.
+2. Provide the previous image SHA in `image_tag`.
+3. Re-run deployment.
 
 ## Monitoring setup
 
@@ -291,15 +265,13 @@ Exposed endpoints:
 - High memory
 - Failing health endpoint via Application Insights web test
 
-## CORS and environment separation
+## CORS and environment setup
 
-- Staging and production get separate Azure resources, secrets, databases, and frontend URLs.
-- Backend CORS is environment-driven through `APP_FRONTEND_URL`.
-- Swagger is enabled in staging and disabled in production through Terraform variable `springdoc_enabled`.
+- Backend CORS is driven through `APP_FRONTEND_URL`.
+- Swagger should remain disabled in production through Terraform variable `springdoc_enabled`.
 
 ## Cost optimization notes
 
-- Container Apps autoscaling keeps staging inexpensive with low min/max replica counts.
 - Log Analytics retention is set to `30` days; tune down further if your compliance posture allows it.
 - Front Door Standard plus WAF is the main premium add-on. If your traffic is low, you can temporarily disable Front Door and rely on Bucket4j while accepting weaker edge protection.
 - PostgreSQL sizing is intentionally moderate. Revisit after you capture real workload metrics.
@@ -307,20 +279,18 @@ Exposed endpoints:
 ## Best practices
 
 - Keep Terraform state in a dedicated subscription or platform resource group with access tightly scoped.
-- Use separate ACR repositories per environment to keep `latest` safe.
 - Never store GitHub deployment credentials in source control.
 - Keep Key Vault secret rotation outside the app release cadence.
-- Treat database schema changes as first-class release artifacts and always validate Flyway on staging before production.
+- Treat database schema changes as first-class release artifacts and validate Flyway before production deployment.
 - Add smoke tests against `/actuator/health/readiness`, `/api/auth/login`, and one authenticated business endpoint before production cutover.
 
 ## Production checklist
 
 - Terraform state backend created and locked down
-- Staging environment applied successfully
 - Production environment applied successfully
 - GitHub OIDC federated credentials configured
-- GitHub environment secrets and variables populated
-- `VITE_API_BASE_URL` points to the correct environment backend URL
+- GitHub `production` environment secrets and variables populated
+- `VITE_API_BASE_URL` points to the production backend URL
 - Key Vault contains JWT, DB, and Application Insights secrets
 - Container App managed identity can read Key Vault secrets
 - Container App managed identity has `AcrPull`

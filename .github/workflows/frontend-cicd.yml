@@ -4,41 +4,15 @@ on:
   push:
     branches:
       - main
-      - develop
     paths:
       - "frontend/**"
       - ".github/workflows/frontend-cicd.yml"
   workflow_dispatch:
-    inputs:
-      environment:
-        description: "Target environment"
-        required: true
-        type: choice
-        options:
-          - staging
-          - production
 
 jobs:
-  resolve-environment:
-    runs-on: ubuntu-latest
-    outputs:
-      environment: ${{ steps.resolve.outputs.environment }}
-    steps:
-      - id: resolve
-        shell: bash
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "environment=${{ inputs.environment }}" >> "$GITHUB_OUTPUT"
-          elif [[ "${{ github.ref_name }}" == "main" ]]; then
-            echo "environment=production" >> "$GITHUB_OUTPUT"
-          else
-            echo "environment=staging" >> "$GITHUB_OUTPUT"
-          fi
-
   deploy:
     runs-on: ubuntu-latest
-    needs: resolve-environment
-    environment: ${{ needs.resolve-environment.outputs.environment }}
+    environment: production
     steps:
       - uses: actions/checkout@v4
 

@@ -272,7 +272,7 @@ function AuthPage({ mode }: { mode: 'login' | 'register' | 'forgot' }) {
     mutationFn: (payload: any) => api.post(`/auth/${mode === 'register' ? 'register' : mode === 'forgot' ? 'forgot-password' : 'login'}`, payload).then((r) => r.data),
     onSuccess: (data) => {
       if (mode !== 'forgot') { setAuth(data); navigate('/'); }
-      else alert('If the email exists, a reset token was emitted to the backend console/MailHog.');
+      else alert('If the email exists, reset instructions were generated. Check your configured delivery flow or backend logs in local development.');
     }
   });
   const errorMessage = extractErrorMessage(mutation.error);
@@ -1156,7 +1156,7 @@ function RulesPage() {
 
 function SettingsPage() {
   const { user, logout } = useAuthStore();
-  return <div className="space-y-6"><PageHeader eyebrow="Profile & Environment" title="Settings" description="Basic profile and environment information." /><div className="card max-w-xl"><div className="mt-4 space-y-4 text-sm"><div><strong>Name:</strong> {user?.displayName}</div><div><strong>Email:</strong> {user?.email}</div><div><strong>Google sign-in:</strong> {user?.googleLinked ? 'Linked' : 'Not linked'}</div>{!user?.googleLinked ? <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300">Use Continue with Google on the login page with the same email address to link your Google account.</div> : null}<div><strong>Reset flow:</strong> MailHog or backend console token output.</div><button type="button" className="btn-secondary mt-4 w-full sm:w-auto" onClick={logout}>Logout</button></div></div></div>;
+  return <div className="space-y-6"><PageHeader eyebrow="Profile & Environment" title="Settings" description="Basic profile and environment information." /><div className="card max-w-xl"><div className="mt-4 space-y-4 text-sm"><div><strong>Name:</strong> {user?.displayName}</div><div><strong>Email:</strong> {user?.email}</div><div><strong>Google sign-in:</strong> {user?.googleLinked ? 'Linked' : 'Not linked'}</div>{!user?.googleLinked ? <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300">Use Continue with Google on the login page with the same email address to link your Google account.</div> : null}<div><strong>Reset flow:</strong> Configured email delivery or backend log output in local development.</div><button type="button" className="btn-secondary mt-4 w-full sm:w-auto" onClick={logout}>Logout</button></div></div></div>;
 }
 
 function Protected() {

@@ -1,7 +1,25 @@
 import axios from 'axios';
 import { clearAuthSnapshot, getAuthSnapshot, replaceAuthSnapshot } from '../store/authStore';
 
-const baseURL = import.meta.env.VITE_API_BASE_URL ?? '/api';
+const productionApiBaseUrl = 'https://pst-dug9c6gfbvd4facx.centralindia-01.azurewebsites.net/api';
+
+function resolveBaseUrl() {
+  const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+  if (configuredBaseUrl) {
+    return configuredBaseUrl.replace(/\/+$/, '');
+  }
+
+  if (typeof window !== 'undefined') {
+    const { hostname } = window.location;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:8080/api';
+    }
+  }
+
+  return productionApiBaseUrl;
+}
+
+const baseURL = resolveBaseUrl();
 export const api = axios.create({
   baseURL,
   timeout: 15000

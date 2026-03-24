@@ -9,6 +9,9 @@ on:
       - ".github/workflows/frontend-cicd.yml"
   workflow_dispatch:
 
+env:
+  DEFAULT_BACKEND_API_URL: https://pst-dug9c6gfbvd4facx.centralindia-01.azurewebsites.net/api
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -29,7 +32,7 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         env:
-          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || env.DEFAULT_BACKEND_API_URL }}
         run: npm run build
 
       - name: Deploy Static Web App
@@ -41,4 +44,4 @@ jobs:
           app_build_command: npm run build
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
         env:
-          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || env.DEFAULT_BACKEND_API_URL }}

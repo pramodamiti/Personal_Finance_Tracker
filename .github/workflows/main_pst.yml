@@ -243,7 +243,7 @@ jobs:
         shell: bash
         run: |
           for attempt in $(seq 1 18); do
-            status=$(curl -ksS -o /dev/null -w "%{http_code}" "${APP_URL}/actuator/health" || true)
+            status=$(curl -ksS -o /dev/null -w "%{http_code}" "${APP_URL}/actuator/health/readiness" || true)
             echo "Health check attempt ${attempt}: HTTP ${status:-000}"
             if [[ "$status" == "200" ]]; then
               exit 0
@@ -251,14 +251,20 @@ jobs:
             sleep 10
           done
 
-          echo "Azure Web App did not become healthy at ${APP_URL}/actuator/health" >&2
+          echo "Azure Web App did not become ready at ${APP_URL}/actuator/health/readiness" >&2
           exit 1
 
       - name: Dump App Service logs on failure
         if: ${{ failure() }}
         shell: bash
         run: |
-          echo "Recent response from health endpoint:"
+          echo "Recent response from readiness endpoint:"
+          curl -ksS -i "${APP_URL}/actuator/health/readiness" || true
+          echo
+          echo "Recent response from liveness endpoint:"
+          curl -ksS -i "${APP_URL}/actuator/health/liveness" || true
+          echo
+          echo "Recent response from aggregate health endpoint:"
           curl -ksS -i "${APP_URL}/actuator/health" || true
           echo
           echo "Tailing Azure Web App logs for diagnostics:"

@@ -4,13 +4,11 @@ import com.personalfinancetracker.app.config.RateLimitConfig;
 import com.personalfinancetracker.app.dto.CommonDtos.*;
 import com.personalfinancetracker.app.entity.Category;
 import com.personalfinancetracker.app.entity.CategoryType;
-import com.personalfinancetracker.app.entity.PasswordResetToken;
 import com.personalfinancetracker.app.entity.RefreshToken;
 import com.personalfinancetracker.app.entity.User;
 import com.personalfinancetracker.app.exception.ApiException;
 import com.personalfinancetracker.app.mapper.AppMapper;
 import com.personalfinancetracker.app.repository.CategoryRepository;
-import com.personalfinancetracker.app.repository.PasswordResetTokenRepository;
 import com.personalfinancetracker.app.repository.RefreshTokenRepository;
 import com.personalfinancetracker.app.repository.UserRepository;
 import com.personalfinancetracker.app.security.JwtService;
@@ -18,8 +16,6 @@ import io.github.bucket4j.Bucket;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -29,11 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
-    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
-
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final CategoryRepository categoryRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
@@ -41,17 +34,14 @@ public class AuthService {
     private final AppMapper mapper;
     private final RateLimitConfig rateLimitConfig;
     private final long refreshExpiration;
-    private final boolean logPasswordResetTokens;
 
     public AuthService(UserRepository userRepository, RefreshTokenRepository refreshTokenRepository,
-                       PasswordResetTokenRepository passwordResetTokenRepository, CategoryRepository categoryRepository,
-                       PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, JwtService jwtService,
-                       AppMapper mapper, RateLimitConfig rateLimitConfig,
-                       @Value("${REFRESH_TOKEN_EXPIRATION:1209600000}") long refreshExpiration,
-                       @Value("${app.security.log-password-reset-tokens:false}") boolean logPasswordResetTokens) {
+                       CategoryRepository categoryRepository, PasswordEncoder passwordEncoder,
+                       AuthenticationManager authenticationManager, JwtService jwtService, AppMapper mapper,
+                       RateLimitConfig rateLimitConfig,
+                       @Value("${REFRESH_TOKEN_EXPIRATION:1209600000}") long refreshExpiration) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
-        this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.categoryRepository = categoryRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -59,7 +49,6 @@ public class AuthService {
         this.mapper = mapper;
         this.rateLimitConfig = rateLimitConfig;
         this.refreshExpiration = refreshExpiration;
-        this.logPasswordResetTokens = logPasswordResetTokens;
     }
 
     @Transactional
@@ -86,28 +75,6 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse loginWithGoogle(String googleSubject, String email, String displayName) {
-        if (googleSubject == null || googleSubject.isBlank()) {
-            throw new ApiException("Google account identifier is missing");
-        }
-
-        String normalizedEmail = normalizeEmail(email);
-        if (normalizedEmail.isBlank()) {
-            throw new ApiException("Google account email is missing");
-        }
-
-        User user = userRepository.findByGoogleSub(googleSubject)
-                .map(existingUser -> ensureGoogleAccountMatchesEmail(existingUser, normalizedEmail))
-                .orElseGet(() -> userRepository.findByEmailIgnoreCase(normalizedEmail)
-                        .map(existingUser -> linkGoogleAccount(existingUser, googleSubject))
-                        .orElseGet(() -> createGoogleUser(googleSubject, normalizedEmail, displayName)));
-
-        user.setLastLoginAt(OffsetDateTime.now());
-        userRepository.save(user);
-        return issueTokens(user);
-    }
-
-    @Transactional
     public AuthResponse refresh(RefreshRequest request) {
         RefreshToken token = refreshTokenRepository.findByToken(request.refreshToken()).filter(t -> !t.isRevoked() && t.getExpiresAt().isAfter(OffsetDateTime.now())).orElseThrow(() -> new ApiException("Invalid refresh token"));
         return issueTokens(loadManagedUser(token.getUser().getId()));
@@ -116,34 +83,6 @@ public class AuthService {
     @Transactional
     public void logout(String refreshToken) {
         refreshTokenRepository.findByToken(refreshToken).ifPresent(token -> { token.setRevoked(true); refreshTokenRepository.save(token); });
-    }
-
-    @Transactional
-    public void forgotPassword(ForgotPasswordRequest request) {
-        consume(rateLimitConfig.resolve("forgot:" + request.email().toLowerCase(), 5));
-        userRepository.findByEmailIgnoreCase(request.email()).ifPresent(user -> {
-            PasswordResetToken token = new PasswordResetToken();
-            token.setUser(user);
-            token.setToken(UUID.randomUUID().toString());
-            token.setExpiresAt(OffsetDateTime.now().plusHours(2));
-            passwordResetTokenRepository.save(token);
-            if (logPasswordResetTokens) {
-                log.warn("Password reset token generated for {}: {}", user.getEmail(), token.getToken());
-            } else {
-                log.info("Password reset token generated for {}", user.getEmail());
-            }
-        });
-    }
-
-    @Transactional
-    public void resetPassword(ResetPasswordRequest request) {
-        PasswordResetToken token = passwordResetTokenRepository.findByToken(request.token())
-                .filter(t -> !t.isUsed() && t.getExpiresAt().isAfter(OffsetDateTime.now()))
-                .orElseThrow(() -> new ApiException("Invalid reset token"));
-        token.getUser().setPasswordHash(passwordEncoder.encode(request.password()));
-        token.setUsed(true);
-        userRepository.save(token.getUser());
-        passwordResetTokenRepository.save(token);
     }
 
     public UserResponse me(User user) {
@@ -163,51 +102,6 @@ public class AuthService {
 
     private User loadManagedUser(UUID userId) {
         return userRepository.findById(userId).orElseThrow(() -> new ApiException("User not found"));
-    }
-
-    private User ensureGoogleAccountMatchesEmail(User user, String normalizedEmail) {
-        userRepository.findByEmailIgnoreCase(normalizedEmail).ifPresent(existingUser -> {
-            if (!existingUser.getId().equals(user.getId())) {
-                throw new ApiException("This Google account is already linked to another user.");
-            }
-        });
-        return user;
-    }
-
-    private User linkGoogleAccount(User user, String googleSubject) {
-        if (user.getGoogleSub() != null && !user.getGoogleSub().equals(googleSubject)) {
-            throw new ApiException("This email is already linked to another Google account.");
-        }
-        user.setGoogleSub(googleSubject);
-        if (user.getGoogleLinkedAt() == null) {
-            user.setGoogleLinkedAt(OffsetDateTime.now());
-        }
-        return user;
-    }
-
-    private User createGoogleUser(String googleSubject, String email, String displayName) {
-        User user = new User();
-        user.setEmail(email);
-        user.setDisplayName(resolveDisplayName(displayName, email));
-        user.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
-        user.setGoogleSub(googleSubject);
-        user.setGoogleLinkedAt(OffsetDateTime.now());
-        user.setLastLoginAt(OffsetDateTime.now());
-        userRepository.save(user);
-        seedDefaultCategories(user);
-        return user;
-    }
-
-    private String normalizeEmail(String email) {
-        return email == null ? "" : email.trim().toLowerCase();
-    }
-
-    private String resolveDisplayName(String displayName, String email) {
-        if (displayName != null && !displayName.isBlank()) {
-            return displayName.trim();
-        }
-        int atIndex = email.indexOf('@');
-        return atIndex > 0 ? email.substring(0, atIndex) : email;
     }
 
     private void seedDefaultCategories(User user) {

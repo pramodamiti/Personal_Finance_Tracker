@@ -11,15 +11,11 @@ import java.util.UUID;
 
 public class CommonDtos {
     public record AuthResponse(String accessToken, String refreshToken, UserResponse user) {}
-    public record UserResponse(UUID id, String email, String displayName, boolean googleLinked) {}
-    public record OAuthProviderResponse(String id, String label, boolean enabled, String authorizationPath) {}
+    public record UserResponse(UUID id, String email, String displayName) {}
     public record RegisterRequest(@Email String email, @NotBlank String displayName,
                                   @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,}$", message = "Password must contain uppercase, lowercase, number and minimum 8 characters") String password) {}
     public record LoginRequest(@Email String email, @NotBlank String password) {}
     public record RefreshRequest(@NotBlank String refreshToken) {}
-    public record ForgotPasswordRequest(@Email String email) {}
-    public record ResetPasswordRequest(@NotBlank String token,
-                                       @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,}$", message = "Password must contain uppercase, lowercase, number and minimum 8 characters") String password) {}
 
     public record AccountRequest(@NotBlank String name, @NotNull AccountType type, BigDecimal openingBalance, String institutionName) {}
     public record AccountResponse(UUID id, String name, AccountType type, BigDecimal openingBalance, BigDecimal currentBalance, String institutionName, boolean archived) {}

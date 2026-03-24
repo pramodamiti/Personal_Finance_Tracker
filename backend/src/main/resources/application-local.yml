@@ -8,11 +8,6 @@ app:
       - "http://localhost:*"
       - "http://127.0.0.1:*"
 
-management:
-  health:
-    mail:
-      enabled: false
-
 springdoc:
   swagger-ui:
     enabled: true

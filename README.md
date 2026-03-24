@@ -6,11 +6,11 @@ A full-stack monorepo implementation of a V1 personal finance tracker using Reac
 
 ### Backend
 - Spring Boot 3.3 API with layered packages for config, controllers, services, repositories, entities, mappers, security, exceptions, and scheduler.
-- JWT auth with refresh tokens, BCrypt password hashing, register/login/logout/me endpoints, forgot-password and reset-password flows.
+- JWT auth with refresh tokens, BCrypt password hashing, and register/login/logout/me endpoints.
 - Flyway migration for the initial PostgreSQL schema using UUID keys and finance-friendly numeric columns.
 - CRUD APIs for accounts, categories, transactions, budgets, goals, recurring transactions, dashboard summaries, and reports.
 - Transaction-safe balance update logic for income, expense, transfer, and goal contribution / withdrawal flows.
-- Bucket4j-based request limiting for login and forgot-password.
+- Bucket4j-based request limiting for login.
 - Spring scheduler for auto-creating due recurring transactions.
 - Swagger/OpenAPI via springdoc.
 - Audit logging table and service for money-impacting actions.
@@ -134,7 +134,6 @@ Use the Azure-specific deployment guide in `docs/azure-production.md`.
 
 ## Implementation decisions and assumptions
 
-- **Forgot password delivery:** local development can use reset token logging when `APP_SECURITY_LOG_PASSWORD_RESET_TOKENS=true`. Production should use a real email delivery provider.
 - **Default categories:** users receive a starter category set on registration.
 - **Tags:** PostgreSQL `text[]` is used for transaction tags to keep the schema compact.
 - **Recurring processing:** scheduler safety now uses distributed locking so multiple replicas can share the same PostgreSQL database safely.
@@ -149,8 +148,6 @@ Use the Azure-specific deployment guide in `docs/azure-production.md`.
 - `POST /api/auth/login`
 - `POST /api/auth/refresh`
 - `POST /api/auth/logout`
-- `POST /api/auth/forgot-password`
-- `POST /api/auth/reset-password`
 - `GET /api/auth/me`
 
 ### Accounts
@@ -220,4 +217,3 @@ Small non-blocking next steps if you want to keep iterating:
 - Add richer edit/delete UI flows and modal-based resource forms on the frontend.
 - Expand automated backend and frontend tests.
 - Harden report endpoints with database-level aggregate queries instead of in-memory aggregation.
-- Add production email templates and SMTP or Azure Communication Services integration if you need password reset email delivery.

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type User = { id: string; email: string; displayName: string; googleLinked?: boolean };
+type User = { id: string; email: string; displayName: string };
 type StoredAuth = { accessToken?: string; refreshToken?: string; user?: User };
 
 type AuthState = {

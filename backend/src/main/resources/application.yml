@@ -17,11 +17,8 @@ spring:
   jackson:
     serialization:
       write-dates-as-timestamps: false
-  lifecycle:
-    timeout-per-shutdown-phase: 30s
 server:
   port: ${PORT:8080}
-  shutdown: graceful
   forward-headers-strategy: framework
   compression:
     enabled: true

@@ -1,13 +1,13 @@
 import clsx from 'clsx';
-import { motion, useReducedMotion } from 'framer-motion';
-import type { HTMLAttributes, ReactNode } from 'react';
+import { motion, useReducedMotion, type HTMLMotionProps } from 'framer-motion';
+import type { ReactNode } from 'react';
 
 type FinanceCardProps = {
   children: ReactNode;
   className?: string;
   interactive?: boolean;
   layoutId?: string;
-} & HTMLAttributes<HTMLElement>;
+} & Omit<HTMLMotionProps<'article'>, 'children'>;
 
 export function FinanceCard({
   children,

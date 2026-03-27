@@ -1,8 +1,8 @@
 import clsx from 'clsx';
-import { motion, useReducedMotion } from 'framer-motion';
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { motion, useReducedMotion, type HTMLMotionProps } from 'framer-motion';
+import type { ReactNode } from 'react';
 
-type MotionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+type MotionButtonProps = Omit<HTMLMotionProps<'button'>, 'children'> & {
   children: ReactNode;
   variant?: 'primary' | 'secondary';
 };

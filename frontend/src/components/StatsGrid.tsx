@@ -31,7 +31,7 @@ export function StatsGrid({ items }: StatsGridProps) {
 
   return (
     <motion.section
-      className="dashboard-grid grid grid-cols-1 gap-4 transition-all duration-500 ease-in-out md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
+      className="grid grid-cols-1 gap-5 transition-all duration-500 ease-in-out md:grid-cols-2 xl:grid-cols-6"
       initial={prefersReducedMotion ? false : 'hidden'}
       animate="visible"
       variants={{
@@ -48,7 +48,7 @@ export function StatsGrid({ items }: StatsGridProps) {
         return (
           <FinanceCard
             key={item.id}
-            className={clsx('relative min-h-[140px] overflow-hidden rounded-[24px] p-5', item.span === 'wide' && 'md:col-span-2 2xl:col-span-2')}
+            className={clsx('relative min-h-[162px] overflow-hidden rounded-[28px] p-6', item.span === 'wide' && 'md:col-span-2 xl:col-span-2')}
           >
             <motion.div
               variants={{
@@ -75,10 +75,10 @@ export function StatsGrid({ items }: StatsGridProps) {
                 <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400">
                   {item.label}
                 </div>
-                <div className="mt-4 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-3xl">
+                <div className="mt-5 text-[2rem] font-semibold tracking-[-0.04em] text-slate-950 dark:text-white sm:text-[2.45rem]">
                   {item.value}
                 </div>
-                <p className="mt-3 max-w-[24ch] text-sm leading-6 text-slate-600 dark:text-slate-300">
+                <p className="mt-4 max-w-[28ch] text-sm leading-6 text-slate-600 dark:text-slate-300">
                   {item.hint}
                 </p>
               </div>

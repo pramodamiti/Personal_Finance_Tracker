@@ -151,32 +151,37 @@ export function Navbar({ items, user, onLogout }: NavbarProps) {
         <div className="sidebar-shell">
           <div className="surface sidebar-panel">
             <div>
-              <div className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-primary dark:border-primary/30 dark:bg-primary/20 dark:text-slate-100">
-                Personal Finance
+              <div className="dashboard-pill">
+                Personal Finance OS
               </div>
-              <h1 className="mt-4 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">
-                Your money, organized clearly.
+              <h1 className="mt-5 text-[2rem] font-semibold leading-[1.05] tracking-[-0.04em] text-slate-950 dark:text-white">
+                Command your cash flow with calm, not clutter.
               </h1>
-              <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                Track balances, budgets, insights, and forecasts in a layout that stays easy to use on every screen size.
+              <p className="mt-4 text-[15px] leading-7 text-slate-600 dark:text-slate-300">
+                A sharper daily workspace for balances, budgets, reporting, and the decisions behind them.
               </p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <span className="signal-chip">Forecast</span>
+                <span className="signal-chip">Controls</span>
+                <span className="signal-chip">Insights</span>
+              </div>
             </div>
 
-            <nav className="mt-8 grid gap-2">
+            <nav className="mt-2 grid gap-2">
               {items.map((item) => (
                 <motion.div key={item.href} whileHover={{ scale: 1.02, y: -4 }} whileTap={{ scale: 0.98 }} transition={{ type: 'spring', stiffness: 100, damping: 20 }}>
                   <NavLink
                     to={item.href}
                     className={({ isActive }) =>
                       clsx(
-                        'group flex min-h-[52px] transform-gpu will-change-transform items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-500 ease-in-out',
+                        'group flex min-h-[56px] transform-gpu will-change-transform items-center gap-3 rounded-[22px] px-4 py-3 text-[15px] font-semibold transition-all duration-500 ease-in-out',
                         isActive
-                          ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800/80 dark:hover:text-white'
+                          ? 'bg-gradient-to-r from-primary to-blue-700 text-white shadow-lg shadow-primary/20'
+                          : 'text-slate-600 hover:bg-slate-100/90 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800/80 dark:hover:text-white'
                       )
                     }
                   >
-                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-black/5 text-current dark:bg-white/10">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-[18px] bg-black/5 text-current dark:bg-white/10">
                       {navIcon(item.href, 'h-5 w-5')}
                     </span>
                     <span>{item.label}</span>
@@ -185,12 +190,22 @@ export function Navbar({ items, user, onLogout }: NavbarProps) {
               ))}
             </nav>
 
-            <div className="mt-auto rounded-[28px] border border-white/60 bg-white/70 p-4 shadow-sm backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-950/70">
+            <div className="mt-auto rounded-[28px] border border-white/60 bg-white/70 p-5 shadow-sm backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-950/70">
               <div className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400 dark:text-slate-500">
                 Signed In
               </div>
-              <div className="mt-3 text-lg font-semibold text-slate-950 dark:text-white">{user?.displayName || 'User'}</div>
-              <div className="text-sm text-slate-500 dark:text-slate-400">{user?.email}</div>
+              <div className="mt-3 text-xl font-semibold tracking-[-0.03em] text-slate-950 dark:text-white">{user?.displayName || 'User'}</div>
+              <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{user?.email}</div>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="mini-stat p-3">
+                  <div className="hero-metric-label">Workspace</div>
+                  <div className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">Production</div>
+                </div>
+                <div className="mini-stat p-3">
+                  <div className="hero-metric-label">Mode</div>
+                  <div className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">Focused</div>
+                </div>
+              </div>
               <MotionButton type="button" variant="secondary" className="mt-4 w-full" onClick={onLogout}>
                 Logout
               </MotionButton>

@@ -89,15 +89,15 @@
   }
 
   .layout-grid {
-    @apply min-h-screen lg:grid lg:grid-cols-[284px_minmax(0,1fr)] 3xl:grid-cols-[320px_minmax(0,1fr)];
+    @apply min-h-screen lg:grid lg:grid-cols-[304px_minmax(0,1fr)] 3xl:grid-cols-[332px_minmax(0,1fr)];
   }
 
   .sidebar-shell {
-    @apply p-3 lg:p-4;
+    @apply p-4 lg:p-5;
   }
 
   .sidebar-panel {
-    @apply sticky top-4 flex min-h-[calc(100vh-2rem)] flex-col gap-5 border border-white/60 bg-white/70 p-5 shadow-glass backdrop-blur-md dark:border-white/10 dark:bg-slate-900/60 dark:shadow-glass-dark;
+    @apply sticky top-5 flex min-h-[calc(100vh-2.5rem)] flex-col gap-6 border border-white/60 bg-white/70 px-5 py-6 shadow-glass backdrop-blur-md dark:border-white/10 dark:bg-slate-900/60 dark:shadow-glass-dark;
   }
 
   .floating-nav {
@@ -105,15 +105,15 @@
   }
 
   .app-main {
-    @apply min-h-screen px-4 pb-28 pt-4 sm:px-6 sm:pt-6 lg:px-8 lg:pb-8;
+    @apply min-h-screen px-4 pb-28 pt-5 sm:px-6 sm:pt-7 lg:px-10 lg:pb-10;
   }
 
   .content-wrap {
-    @apply relative z-10 flex flex-col gap-4 sm:gap-5;
+    @apply relative z-10 mx-auto flex w-full max-w-[1560px] flex-col gap-5 sm:gap-6;
   }
 
   .hero-panel {
-    @apply surface relative overflow-hidden border border-white/60 bg-white/70 p-5 backdrop-blur-md dark:border-white/10 dark:bg-slate-900/60 sm:p-6;
+    @apply surface relative overflow-hidden border border-white/60 bg-white/70 p-6 backdrop-blur-md dark:border-white/10 dark:bg-slate-900/60 sm:p-7;
   }
 
   .hero-panel::after {
@@ -133,16 +133,16 @@
   }
 
   .hero-panel {
-    @apply grid gap-4 lg:grid-cols-[1.1fr_minmax(260px,0.9fr)] lg:items-end;
+    @apply grid gap-6 lg:grid-cols-[1.1fr_minmax(300px,0.95fr)] lg:items-end;
   }
 
   .hero-title {
     font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
-    @apply mt-3 text-2xl font-semibold leading-tight tracking-tight text-slate-950 dark:text-white md:text-3xl;
+    @apply mt-3 text-[2rem] font-semibold leading-[1.02] tracking-[-0.04em] text-slate-950 dark:text-white md:text-[3.15rem];
   }
 
   .hero-description {
-    @apply mt-3 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300 sm:text-base;
+    @apply mt-4 max-w-3xl text-[15px] leading-7 text-slate-600 dark:text-slate-300 sm:text-[17px];
   }
 
   .brand-pill,
@@ -207,7 +207,7 @@
   }
 
   .card {
-    @apply surface border border-white/65 p-4 shadow-sm transition-all duration-500 ease-in-out sm:p-5 dark:border-slate-700/70;
+    @apply surface border border-white/65 p-5 shadow-sm transition-all duration-500 ease-in-out sm:p-6 dark:border-slate-700/70;
   }
 
   .card:hover {
@@ -231,7 +231,7 @@
   }
 
   .btn-primary {
-    @apply btn bg-gradient-to-br from-primary to-blue-700 text-white shadow-md shadow-primary/20 hover:shadow-premium dark:from-primary dark:to-blue-700;
+    @apply btn bg-gradient-to-br from-primary via-blue-800 to-blue-700 text-white shadow-md shadow-primary/20 hover:shadow-premium dark:from-primary dark:via-blue-800 dark:to-blue-700;
   }
 
   .btn-secondary {
@@ -239,7 +239,7 @@
   }
 
   .input {
-    @apply w-full rounded-xl border border-slate-200 bg-white/95 px-4 py-3 text-slate-950 shadow-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-700 dark:bg-slate-950/80 dark:text-white dark:focus:border-primary dark:focus:ring-primary/20;
+    @apply w-full rounded-2xl border border-slate-200 bg-white/95 px-4 py-3 text-slate-950 shadow-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-700 dark:bg-slate-950/80 dark:text-white dark:focus:border-primary dark:focus:ring-primary/20;
   }
 
   .label {
@@ -269,6 +269,178 @@
 
   .data-table tbody tr td:last-child {
     @apply rounded-r-[22px];
+  }
+
+  .dashboard-hero {
+    background:
+      radial-gradient(circle at 10% 10%, rgba(30, 58, 138, 0.15), transparent 26%),
+      radial-gradient(circle at 85% 16%, rgba(16, 185, 129, 0.12), transparent 22%),
+      linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(242, 247, 255, 0.8));
+  }
+
+  html.dark .dashboard-hero {
+    background:
+      radial-gradient(circle at 10% 10%, rgba(30, 58, 138, 0.22), transparent 24%),
+      radial-gradient(circle at 85% 16%, rgba(16, 185, 129, 0.16), transparent 18%),
+      linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(9, 16, 31, 0.82));
+  }
+
+  .dashboard-pill {
+    @apply inline-flex items-center gap-2 rounded-full border border-white/70 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-600 shadow-sm backdrop-blur-md dark:border-white/10 dark:text-slate-300;
+    background-color: rgb(255 255 255 / 0.75);
+  }
+
+  .signal-chip {
+    @apply rounded-full border border-slate-200/80 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500 dark:border-slate-700/80 dark:text-slate-400;
+    background-color: rgb(255 255 255 / 0.8);
+  }
+
+  .hero-metric {
+    @apply rounded-[26px] border border-white/70 p-5 shadow-sm backdrop-blur-xl dark:border-white/10;
+    background-color: rgb(255 255 255 / 0.78);
+  }
+
+  .hero-metric-label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400;
+  }
+
+  .hero-metric-value {
+    @apply mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white;
+  }
+
+  .hero-metric-subtle {
+    @apply mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400;
+  }
+
+  .bento-grid {
+    @apply grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-6;
+  }
+
+  .bento-panel {
+    @apply h-full;
+  }
+
+  .section-eyebrow {
+    @apply mb-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400 dark:text-slate-500;
+  }
+
+  .section-title {
+    @apply text-[1.35rem] font-semibold tracking-[-0.03em] text-slate-950 dark:text-white;
+  }
+
+  .section-copy {
+    @apply mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400;
+  }
+
+  .mini-stat {
+    @apply rounded-[22px] border border-white/70 p-4 backdrop-blur-md dark:border-slate-700/70;
+    background-color: rgb(255 255 255 / 0.82);
+  }
+
+  .mini-stat-value {
+    @apply mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950 dark:text-white;
+  }
+
+  .timeline-item {
+    @apply rounded-[22px] border border-white/60 px-4 py-4 backdrop-blur-md dark:border-slate-700/60;
+    background-color: rgb(255 255 255 / 0.78);
+  }
+
+  .timeline-default {
+    @apply border-white/60 dark:border-slate-700/60;
+  }
+
+  .timeline-danger {
+    @apply border-expense/20 bg-expense/5 dark:border-expense/30 dark:bg-expense/10;
+  }
+
+  .timeline-accent {
+    @apply border-accent/20 bg-accent/5 dark:border-accent/30 dark:bg-accent/10;
+  }
+
+  .timeline-title {
+    @apply text-sm font-semibold text-slate-950 dark:text-white;
+  }
+
+  .timeline-subtitle {
+    @apply mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400;
+  }
+
+  .timeline-value {
+    @apply shrink-0 text-sm font-semibold text-slate-950 dark:text-white;
+  }
+
+  .runway-meter-shell {
+    @apply rounded-[28px] border border-white/60 p-5 text-center dark:border-slate-700/60;
+    background:
+      radial-gradient(circle at top, rgba(30, 58, 138, 0.1), transparent 48%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(248, 250, 252, 0.88));
+  }
+
+  .runway-meter-ring {
+    @apply relative mx-auto grid h-44 w-44 place-items-center rounded-full;
+    background:
+      radial-gradient(circle at center, rgba(255, 255, 255, 0.94) 0 57%, transparent 58%),
+      conic-gradient(#10b981 0 var(--meter-value), rgba(148, 163, 184, 0.16) var(--meter-value) 100%);
+    box-shadow:
+      inset 0 0 0 12px rgba(255, 255, 255, 0.72),
+      0 18px 44px rgba(15, 23, 42, 0.12);
+  }
+
+  .runway-meter-core {
+    @apply grid h-[72%] w-[72%] place-items-center rounded-full border border-white/70 text-center dark:border-white/10;
+    background-color: rgb(255 255 255 / 0.9);
+  }
+
+  .runway-meter-value {
+    @apply text-4xl font-semibold tracking-[-0.05em] text-slate-950 dark:text-white;
+  }
+
+  .runway-meter-label {
+    @apply mt-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400;
+  }
+
+  .runway-meter-detail {
+    @apply mt-4 text-sm leading-6 text-slate-500 dark:text-slate-400;
+  }
+
+  html.dark .dashboard-pill {
+    background-color: rgb(15 23 42 / 0.7);
+  }
+
+  html.dark .signal-chip {
+    background-color: rgb(15 23 42 / 0.75);
+  }
+
+  html.dark .hero-metric {
+    background-color: rgb(15 23 42 / 0.72);
+  }
+
+  html.dark .mini-stat {
+    background-color: rgb(15 23 42 / 0.74);
+  }
+
+  html.dark .timeline-item {
+    background-color: rgb(15 23 42 / 0.72);
+  }
+
+  html.dark .runway-meter-shell {
+    background:
+      radial-gradient(circle at top, rgba(30, 58, 138, 0.18), transparent 44%),
+      linear-gradient(180deg, rgba(15, 23, 42, 0.78), rgba(9, 16, 31, 0.88));
+  }
+
+  html.dark .runway-meter-ring {
+    background:
+      radial-gradient(circle at center, rgba(2, 6, 23, 0.96) 0 57%, transparent 58%),
+      conic-gradient(#10b981 0 var(--meter-value), rgba(71, 85, 105, 0.48) var(--meter-value) 100%);
+    box-shadow:
+      inset 0 0 0 12px rgba(15, 23, 42, 0.82),
+      0 18px 44px rgba(2, 6, 23, 0.34);
+  }
+
+  html.dark .runway-meter-core {
+    background-color: rgb(2 6 23 / 0.9);
   }
 
   .no-scrollbar {

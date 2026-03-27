@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -235,14 +235,26 @@ function SectionTitle({ title, description }: { title: string; description?: str
 
 function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuthStore();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    return window.localStorage.getItem('pft-sidebar-collapsed') === 'true';
+  });
+
+  useEffect(() => {
+    window.localStorage.setItem('pft-sidebar-collapsed', String(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
+
   return (
     <div className="app-shell">
       <div className="ambient ambient-one" />
       <div className="ambient ambient-two" />
       <div className="ambient ambient-three" />
-      <div className="layout-grid">
-        <Navbar items={nav} user={user} onLogout={logout} />
-        <main className="app-main">
+      <div className={`layout-grid ${isSidebarCollapsed ? 'is-collapsed' : ''}`}>
+        <Navbar items={nav} user={user} onLogout={logout} isCollapsed={isSidebarCollapsed} onToggleCollapse={() => setIsSidebarCollapsed((current) => !current)} />
+        <main className="app-main" data-scroll-root="true">
           <div className="content-wrap">{children}</div>
         </main>
       </div>
@@ -311,7 +323,7 @@ function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   }, [carouselSlides.length]);
 
   return (
-    <PageWrapper pageKey={`auth-${mode}`} className="min-h-screen overflow-hidden px-4 py-10">
+    <PageWrapper pageKey={`auth-${mode}`} className="auth-page-shell overflow-hidden px-4 py-4 sm:px-5 sm:py-5">
       <div className="ambient ambient-one" />
       <div className="ambient ambient-two" />
       <div className="auth-shell">
@@ -385,7 +397,13 @@ function AuthPage({ mode }: { mode: 'login' | 'register' }) {
           </div>
         </div>
         <div className="auth-card">
-          <div className="kicker">{mode === 'register' ? 'Create account' : 'Sign in'}</div>
+          <div className="flex items-start justify-between gap-4">
+            <div className="kicker">{mode === 'register' ? 'Create account' : 'Sign in'}</div>
+            <button type="button" className="theme-toggle theme-toggle-compact" onClick={toggleTheme}>
+              <span className="theme-toggle-orb" />
+              <span>{theme === 'dark' ? 'Dark' : 'Light'}</span>
+            </button>
+          </div>
           <h2 className="mt-3 text-2xl font-semibold capitalize text-slate-950 dark:text-white">
             {mode === 'register' ? 'Create your account' : 'Login'}
           </h2>
@@ -1199,6 +1217,21 @@ function Protected() {
   return <Layout><Routes><Route path="/" element={<DashboardPage />} /><Route path="/transactions" element={<TransactionsPage />} /><Route path="/budgets" element={<BudgetsPage />} /><Route path="/goals" element={<ResourcePage title="Goals" endpoint="/goals" fields={[{ name: 'name', label: 'Name' }, { name: 'targetAmount', label: 'Target', type: 'number' }, { name: 'currentAmount', label: 'Current', type: 'number' }]} />} /><Route path="/reports" element={<ReportsPage />} /><Route path="/insights" element={<InsightsPage />} /><Route path="/rules" element={<RulesPage />} /><Route path="/recurring" element={<ResourcePage title="Recurring transactions" endpoint="/recurring" fields={[{ name: 'title', label: 'Title' }, { name: 'transactionType', label: 'Type', options: transactionTypeOptions }, { name: 'frequency', label: 'Frequency', options: recurringFrequencyOptions }, { name: 'amount', label: 'Amount', type: 'number' }, { name: 'startDate', label: 'Start', type: 'date' }]} />} /><Route path="/accounts" element={<ResourcePage title="Accounts" endpoint="/accounts" fields={[{ name: 'name', label: 'Name' }, { name: 'type', label: 'Type', options: accountTypeOptions }, { name: 'openingBalance', label: 'Opening balance', type: 'number' }]} />} /><Route path="/settings" element={<SettingsPage />} /></Routes></Layout>;
 }
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    document.querySelectorAll<HTMLElement>('[data-scroll-root="true"]').forEach((element) => {
+      element.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    });
+  }, [pathname]);
+
+  return null;
+}
+
 export function App() {
-  return <Routes><Route path="/login" element={<AuthPage mode="login" />} /><Route path="/register" element={<AuthPage mode="register" />} /><Route path="*" element={<Protected />} /></Routes>;
+  return <><ScrollToTop /><Routes><Route path="/login" element={<AuthPage mode="login" />} /><Route path="/register" element={<AuthPage mode="register" />} /><Route path="*" element={<Protected />} /></Routes></>;
 }

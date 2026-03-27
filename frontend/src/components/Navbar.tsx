@@ -16,6 +16,8 @@ type NavbarProps = {
     email?: string;
   } | null;
   onLogout: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse: () => void;
 };
 
 type IconProps = {
@@ -144,27 +146,51 @@ function navIcon(href: string, className?: string) {
   }
 }
 
-export function Navbar({ items, user, onLogout }: NavbarProps) {
+function CollapseIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <path d="M15 6l-6 6 6 6" />
+    </svg>
+  );
+}
+
+export function Navbar({ items, user, onLogout, isCollapsed = false, onToggleCollapse }: NavbarProps) {
   return (
     <>
       <aside className="hidden lg:block">
         <div className="sidebar-shell">
-          <div className="surface sidebar-panel">
+          <div className={clsx('surface sidebar-panel', isCollapsed && 'sidebar-panel-collapsed')}>
             <div>
-              <div className="dashboard-pill">
-                Personal Finance OS
+              <div className={clsx('flex items-start gap-3', isCollapsed ? 'justify-center' : 'justify-between')}>
+                {isCollapsed ? null : (
+                  <div className="dashboard-pill">
+                    Personal Finance OS
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className={clsx('sidebar-collapse-button', isCollapsed && 'is-collapsed')}
+                  onClick={onToggleCollapse}
+                  aria-label={isCollapsed ? 'Expand menu' : 'Collapse menu'}
+                >
+                  <CollapseIcon className="h-4 w-4" />
+                </button>
               </div>
-              <h1 className="mt-5 text-[2rem] font-semibold leading-[1.05] tracking-[-0.04em] text-slate-950 dark:text-white">
-                Command your cash flow with calm, not clutter.
-              </h1>
-              <p className="mt-4 text-[15px] leading-7 text-slate-600 dark:text-slate-300">
-                A sharper daily workspace for balances, budgets, reporting, and the decisions behind them.
-              </p>
-              <div className="mt-5 flex flex-wrap gap-2">
-                <span className="signal-chip">Forecast</span>
-                <span className="signal-chip">Controls</span>
-                <span className="signal-chip">Insights</span>
-              </div>
+              {isCollapsed ? null : (
+                <>
+                  <h1 className="mt-5 text-[2rem] font-semibold leading-[1.05] tracking-[-0.04em] text-slate-950 dark:text-white">
+                    Command your cash flow with calm, not clutter.
+                  </h1>
+                  <p className="mt-4 text-[15px] leading-7 text-slate-600 dark:text-slate-300">
+                    A sharper daily workspace for balances, budgets, reporting, and the decisions behind them.
+                  </p>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <span className="signal-chip">Forecast</span>
+                    <span className="signal-chip">Controls</span>
+                    <span className="signal-chip">Insights</span>
+                  </div>
+                </>
+              )}
             </div>
 
             <nav className="mt-2 grid gap-2">
@@ -175,41 +201,54 @@ export function Navbar({ items, user, onLogout }: NavbarProps) {
                     className={({ isActive }) =>
                       clsx(
                         'group flex min-h-[56px] transform-gpu will-change-transform items-center gap-3 rounded-[22px] px-4 py-3 text-[15px] font-semibold transition-all duration-500 ease-in-out',
+                        isCollapsed && 'justify-center px-3',
                         isActive
                           ? 'bg-gradient-to-r from-primary to-blue-700 text-white shadow-lg shadow-primary/20'
                           : 'text-slate-600 hover:bg-slate-100/90 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800/80 dark:hover:text-white'
                       )
                     }
+                    title={item.label}
                   >
                     <span className="flex h-11 w-11 items-center justify-center rounded-[18px] bg-black/5 text-current dark:bg-white/10">
                       {navIcon(item.href, 'h-5 w-5')}
                     </span>
-                    <span>{item.label}</span>
+                    {isCollapsed ? null : <span>{item.label}</span>}
                   </NavLink>
                 </motion.div>
               ))}
             </nav>
 
-            <div className="mt-auto rounded-[28px] border border-white/60 bg-white/70 p-5 shadow-sm backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-950/70">
-              <div className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400 dark:text-slate-500">
-                Signed In
-              </div>
-              <div className="mt-3 text-xl font-semibold tracking-[-0.03em] text-slate-950 dark:text-white">{user?.displayName || 'User'}</div>
-              <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{user?.email}</div>
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="mini-stat p-3">
-                  <div className="hero-metric-label">Workspace</div>
-                  <div className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">Production</div>
+            {isCollapsed ? (
+              <div className="mt-auto flex flex-col items-center gap-3 rounded-[28px] border border-white/60 bg-white/70 p-4 shadow-sm backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-950/70">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-primary to-blue-700 text-base font-semibold text-white">
+                  {(user?.displayName || 'U').slice(0, 1).toUpperCase()}
                 </div>
-                <div className="mini-stat p-3">
-                  <div className="hero-metric-label">Mode</div>
-                  <div className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">Focused</div>
-                </div>
+                <MotionButton type="button" variant="secondary" className="w-full px-0" onClick={onLogout}>
+                  Out
+                </MotionButton>
               </div>
-              <MotionButton type="button" variant="secondary" className="mt-4 w-full" onClick={onLogout}>
-                Logout
-              </MotionButton>
-            </div>
+            ) : (
+              <div className="mt-auto rounded-[28px] border border-white/60 bg-white/70 p-5 shadow-sm backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-950/70">
+                <div className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400 dark:text-slate-500">
+                  Signed In
+                </div>
+                <div className="mt-3 text-xl font-semibold tracking-[-0.03em] text-slate-950 dark:text-white">{user?.displayName || 'User'}</div>
+                <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{user?.email}</div>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="mini-stat p-3">
+                    <div className="hero-metric-label">Workspace</div>
+                    <div className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">Production</div>
+                  </div>
+                  <div className="mini-stat p-3">
+                    <div className="hero-metric-label">Mode</div>
+                    <div className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">Focused</div>
+                  </div>
+                </div>
+                <MotionButton type="button" variant="secondary" className="mt-4 w-full" onClick={onLogout}>
+                  Logout
+                </MotionButton>
+              </div>
+            )}
           </div>
         </div>
       </aside>

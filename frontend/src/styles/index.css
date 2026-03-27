@@ -92,12 +92,28 @@
     @apply min-h-screen lg:grid lg:grid-cols-[304px_minmax(0,1fr)] 3xl:grid-cols-[332px_minmax(0,1fr)];
   }
 
+  .layout-grid.is-collapsed {
+    grid-template-columns: 120px minmax(0, 1fr);
+  }
+
   .sidebar-shell {
     @apply p-4 lg:p-5;
   }
 
   .sidebar-panel {
     @apply sticky top-5 flex min-h-[calc(100vh-2.5rem)] flex-col gap-6 border border-white/60 bg-white/70 px-5 py-6 shadow-glass backdrop-blur-md dark:border-white/10 dark:bg-slate-900/60 dark:shadow-glass-dark;
+  }
+
+  .sidebar-panel-collapsed {
+    @apply px-3 py-5;
+  }
+
+  .sidebar-collapse-button {
+    @apply inline-flex h-11 w-11 items-center justify-center rounded-[18px] border border-white/60 bg-white/70 text-slate-500 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-300;
+  }
+
+  .sidebar-collapse-button.is-collapsed svg {
+    transform: rotate(180deg);
   }
 
   .floating-nav {
@@ -184,11 +200,15 @@
   }
 
   .auth-shell {
-    @apply relative z-10 mx-auto grid max-w-5xl gap-4 lg:grid-cols-[1.05fr_minmax(360px,0.95fr)];
+    @apply relative z-10 mx-auto grid w-full max-w-[1480px] gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(420px,0.88fr)] lg:items-stretch 2xl:max-w-[1640px];
+  }
+
+  .auth-page-shell {
+    @apply flex min-h-[100dvh] items-center;
   }
 
   .auth-showcase {
-    @apply rounded-[32px] border border-white/70 px-6 py-7 text-slate-950 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-slate-700/70 dark:text-white;
+    @apply rounded-[32px] border border-white/70 px-5 py-5 text-slate-950 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-slate-700/70 dark:text-white sm:px-6 sm:py-6;
     background:
       radial-gradient(circle at top left, rgba(14, 165, 233, 0.12), transparent 28%),
       radial-gradient(circle at top right, rgba(245, 158, 11, 0.16), transparent 26%),
@@ -205,12 +225,16 @@
   }
 
   .auth-card {
-    @apply surface rounded-[28px] p-6 sm:p-7;
+    @apply surface rounded-[28px] p-5 sm:p-6;
   }
 
   .theme-toggle {
     @apply inline-flex items-center gap-2 rounded-full border border-white/70 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600 shadow-sm backdrop-blur-md dark:border-white/10 dark:text-slate-300;
     background-color: rgb(255 255 255 / 0.72);
+  }
+
+  .theme-toggle-compact {
+    @apply min-h-[40px] px-3 py-2 text-[11px];
   }
 
   .theme-toggle-orb {
@@ -222,11 +246,11 @@
   }
 
   .auth-carousel-shell {
-    @apply mt-8 space-y-5;
+    @apply mt-6 space-y-4;
   }
 
   .auth-carousel-grid {
-    @apply grid gap-5 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-stretch;
+    @apply grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-stretch;
   }
 
   .auth-slide-pill {
@@ -235,15 +259,15 @@
 
   .auth-hero-title {
     font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
-    @apply mt-5 max-w-xl text-[2.2rem] font-semibold leading-[1.03] tracking-[-0.05em] text-slate-950 dark:text-white sm:text-[3rem];
+    @apply mt-4 max-w-xl text-[2rem] font-semibold leading-[1.01] tracking-[-0.05em] text-slate-950 dark:text-white sm:text-[2.7rem];
   }
 
   .auth-hero-copy {
-    @apply mt-4 max-w-xl text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base;
+    @apply mt-3 max-w-xl text-sm leading-6 text-slate-600 dark:text-slate-300 sm:text-[15px];
   }
 
   .auth-stat {
-    @apply rounded-[22px] border border-white/70 p-4 shadow-sm backdrop-blur-md dark:border-slate-700/70;
+    @apply rounded-[22px] border border-white/70 p-3 shadow-sm backdrop-blur-md dark:border-slate-700/70;
     background-color: rgb(255 255 255 / 0.74);
   }
 
@@ -252,16 +276,16 @@
   }
 
   .auth-stat-value {
-    @apply mt-3 text-xl font-semibold tracking-[-0.03em] text-slate-950 dark:text-white;
+    @apply mt-2 text-lg font-semibold tracking-[-0.03em] text-slate-950 dark:text-white;
   }
 
   .auth-orbit-panel {
-    @apply rounded-[28px] border border-white/70 p-4 shadow-sm backdrop-blur-md dark:border-slate-700/70;
+    @apply rounded-[28px] border border-white/70 p-3 shadow-sm backdrop-blur-md dark:border-slate-700/70;
     background-color: rgb(255 255 255 / 0.7);
   }
 
   .auth-orbit-card {
-    @apply relative flex h-full min-h-[220px] flex-col justify-between overflow-hidden rounded-[24px] p-5;
+    @apply relative flex h-full min-h-[190px] flex-col justify-between overflow-hidden rounded-[24px] p-4;
     background: linear-gradient(145deg, rgba(30, 41, 59, 0.94), rgba(15, 23, 42, 0.72));
   }
 
@@ -296,7 +320,7 @@
   }
 
   .auth-orbit-footprint {
-    @apply mt-10 flex items-center gap-2;
+    @apply mt-6 flex items-center gap-2;
   }
 
   .auth-orbit-footprint span {
@@ -307,6 +331,34 @@
 
   .auth-carousel-dots {
     @apply flex items-center gap-2;
+  }
+
+  @media (min-width: 1024px) {
+    .auth-shell {
+      min-height: calc(100dvh - 2rem);
+      max-height: 880px;
+    }
+
+    .auth-showcase,
+    .auth-card {
+      height: 100%;
+    }
+  }
+
+  @media (max-height: 900px) and (min-width: 1024px) {
+    .auth-carousel-shell {
+      margin-top: 1.25rem;
+    }
+
+    .auth-orbit-panel {
+      display: none;
+    }
+  }
+
+  @media (max-height: 820px) and (min-width: 1024px) {
+    .auth-showcase .metric-card:last-child {
+      display: none;
+    }
   }
 
   .auth-carousel-dot {

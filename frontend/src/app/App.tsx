@@ -299,7 +299,7 @@ function AuthPage({ mode }: { mode: 'login' | 'register' }) {
             <div><label className="label">Email</label><input className="input" {...register('email')} /></div>
             <div><label className="label">Password</label><input type="password" className="input" {...register('password')} /></div>
             {errorMessage && <ErrorBanner message={errorMessage} />}
-            <MotionButton className="w-full" disabled={mutation.isPending}>
+            <MotionButton type="submit" className="w-full" disabled={mutation.isPending}>
               {mutation.isPending
                 ? 'Please wait...'
                 : mode === 'register'

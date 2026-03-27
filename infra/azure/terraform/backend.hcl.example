@@ -1,4 +1,0 @@
-resource_group_name  = "tfstate-rg"
-storage_account_name = "pftterraformstate"
-container_name       = "tfstate"
-key                  = "azure/production.tfstate"

@@ -31,11 +31,6 @@ A full-stack monorepo implementation of a V1 personal finance tracker using Reac
 ├── .gitignore
 ├── .github/
 │   └── workflows/
-├── docs/
-│   └── azure-production.md
-├── infra/
-│   └── azure/
-│       └── terraform/
 ├── backend/
 │   ├── pom.xml
 │   ├── mvnw
@@ -59,7 +54,7 @@ A full-stack monorepo implementation of a V1 personal finance tracker using Reac
 - Node.js 18+
 - Java 21+
 - Maven 3.9+
-- PostgreSQL 16+ or Azure Database for PostgreSQL
+- PostgreSQL 16+
 
 ### 1. Configure environment
 Copy the examples if desired:
@@ -102,10 +97,6 @@ npm run dev
 
 Frontend URL:
 - `http://localhost:1455`
-
-## Azure deployment
-
-Use the Azure-specific deployment guide in `docs/azure-production.md`.
 
 ## Product scope implemented
 

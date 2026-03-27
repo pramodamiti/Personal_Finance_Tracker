@@ -1,5 +1,7 @@
 import clsx from 'clsx';
+import { motion } from 'framer-motion';
 import { NavLink } from 'react-router-dom';
+import { MotionButton } from './MotionButton';
 
 export type NavItem = {
   href: string;
@@ -162,23 +164,24 @@ export function Navbar({ items, user, onLogout }: NavbarProps) {
 
             <nav className="mt-8 grid gap-2">
               {items.map((item) => (
-                <NavLink
-                  key={item.href}
-                  to={item.href}
-                  className={({ isActive }) =>
-                    clsx(
-                      'group flex min-h-[52px] items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-300 ease-in-out',
-                      isActive
-                        ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800/80 dark:hover:text-white'
-                    )
-                  }
-                >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-black/5 text-current dark:bg-white/10">
-                    {navIcon(item.href, 'h-5 w-5')}
-                  </span>
-                  <span>{item.label}</span>
-                </NavLink>
+                <motion.div key={item.href} whileHover={{ scale: 1.02, y: -4 }} whileTap={{ scale: 0.98 }} transition={{ type: 'spring', stiffness: 100, damping: 20 }}>
+                  <NavLink
+                    to={item.href}
+                    className={({ isActive }) =>
+                      clsx(
+                        'group flex min-h-[52px] transform-gpu will-change-transform items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-500 ease-in-out',
+                        isActive
+                          ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800/80 dark:hover:text-white'
+                      )
+                    }
+                  >
+                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-black/5 text-current dark:bg-white/10">
+                      {navIcon(item.href, 'h-5 w-5')}
+                    </span>
+                    <span>{item.label}</span>
+                  </NavLink>
+                </motion.div>
               ))}
             </nav>
 
@@ -188,9 +191,9 @@ export function Navbar({ items, user, onLogout }: NavbarProps) {
               </div>
               <div className="mt-3 text-lg font-semibold text-slate-950 dark:text-white">{user?.displayName || 'User'}</div>
               <div className="text-sm text-slate-500 dark:text-slate-400">{user?.email}</div>
-              <button type="button" className="btn-secondary mt-4 w-full" onClick={onLogout}>
+              <MotionButton type="button" variant="secondary" className="mt-4 w-full" onClick={onLogout}>
                 Logout
-              </button>
+              </MotionButton>
             </div>
           </div>
         </div>
@@ -199,21 +202,22 @@ export function Navbar({ items, user, onLogout }: NavbarProps) {
       <div className="floating-nav no-scrollbar lg:hidden">
         <nav className="no-scrollbar flex min-w-max items-center gap-2 overflow-x-auto">
           {items.map((item) => (
-            <NavLink
-              key={item.href}
-              to={item.href}
-              className={({ isActive }) =>
-                clsx(
-                  'flex min-h-[44px] min-w-[78px] flex-col items-center justify-center rounded-2xl px-3 py-2 text-[11px] font-semibold transition-all duration-300 ease-in-out',
-                  isActive
-                    ? 'bg-primary text-white shadow-md shadow-primary/20'
-                    : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800/80'
-                )
-              }
-            >
-              {navIcon(item.href, 'h-5 w-5')}
-              <span className="mt-1 whitespace-nowrap">{item.mobileLabel || item.label}</span>
-            </NavLink>
+            <motion.div key={item.href} whileHover={{ scale: 1.02, y: -4 }} whileTap={{ scale: 0.98 }} transition={{ type: 'spring', stiffness: 100, damping: 20 }}>
+              <NavLink
+                to={item.href}
+                className={({ isActive }) =>
+                  clsx(
+                    'flex min-h-[44px] min-w-[78px] transform-gpu will-change-transform flex-col items-center justify-center rounded-2xl px-3 py-2 text-[11px] font-semibold transition-all duration-500 ease-in-out',
+                    isActive
+                      ? 'bg-primary text-white shadow-md shadow-primary/20'
+                      : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800/80'
+                  )
+                }
+              >
+                {navIcon(item.href, 'h-5 w-5')}
+                <span className="mt-1 whitespace-nowrap">{item.mobileLabel || item.label}</span>
+              </NavLink>
+            </motion.div>
           ))}
         </nav>
       </div>

@@ -1,4 +1,6 @@
 import clsx from 'clsx';
+import { motion, useReducedMotion } from 'framer-motion';
+import { FinanceCard } from './FinanceCard';
 
 export type StatCard = {
   id: string;
@@ -25,40 +27,65 @@ const toneClasses: Record<NonNullable<StatCard['tone']>, string> = {
 };
 
 export function StatsGrid({ items }: StatsGridProps) {
+  const prefersReducedMotion = useReducedMotion();
+
   return (
-    <section className="dashboard-grid grid grid-cols-1 gap-4 transition-all duration-300 ease-in-out md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+    <motion.section
+      className="dashboard-grid grid grid-cols-1 gap-4 transition-all duration-500 ease-in-out md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
+      initial={prefersReducedMotion ? false : 'hidden'}
+      animate="visible"
+      variants={{
+        hidden: {},
+        visible: {
+          transition: {
+            staggerChildren: 0.08
+          }
+        }
+      }}
+    >
       {items.map((item) => {
         const tone = item.tone || 'primary';
         return (
-          <article
+          <FinanceCard
             key={item.id}
-            className={clsx(
-              'surface relative overflow-hidden rounded-[24px] p-5 transition-all duration-300 ease-in-out',
-              'min-h-[140px]',
-              item.span === 'wide' && 'md:col-span-2 2xl:col-span-2'
-            )}
+            className={clsx('relative min-h-[140px] overflow-hidden rounded-[24px] p-5', item.span === 'wide' && 'md:col-span-2 2xl:col-span-2')}
           >
-            <div className={clsx('absolute inset-x-0 top-0 h-1 bg-gradient-to-r', toneClasses[tone])} />
-            <div
-              className={clsx(
-                'absolute -right-10 -top-10 h-24 w-24 rounded-full bg-gradient-to-br opacity-45 blur-2xl',
-                toneClasses[tone]
-              )}
-            />
-            <div className="relative">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400">
-                {item.label}
+            <motion.div
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: {
+                  opacity: 1,
+                  y: 0,
+                  transition: {
+                    type: 'spring',
+                    stiffness: 100,
+                    damping: 20
+                  }
+                }
+              }}
+            >
+              <div className={clsx('absolute inset-x-0 top-0 h-1 bg-gradient-to-r', toneClasses[tone])} />
+              <div
+                className={clsx(
+                  'absolute -right-10 -top-10 h-24 w-24 rounded-full bg-gradient-to-br opacity-45 blur-2xl',
+                  toneClasses[tone]
+                )}
+              />
+              <div className="relative">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400">
+                  {item.label}
+                </div>
+                <div className="mt-4 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-3xl">
+                  {item.value}
+                </div>
+                <p className="mt-3 max-w-[24ch] text-sm leading-6 text-slate-600 dark:text-slate-300">
+                  {item.hint}
+                </p>
               </div>
-              <div className="mt-4 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-3xl">
-                {item.value}
-              </div>
-              <p className="mt-3 max-w-[24ch] text-sm leading-6 text-slate-600 dark:text-slate-300">
-                {item.hint}
-              </p>
-            </div>
-          </article>
+            </motion.div>
+          </FinanceCard>
         );
       })}
-    </section>
+    </motion.section>
   );
 }

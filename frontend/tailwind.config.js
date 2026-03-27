@@ -24,7 +24,19 @@ export default {
         display: ['Space Grotesk', 'Manrope', 'ui-sans-serif', 'system-ui', 'sans-serif']
       },
       boxShadow: {
-        fintech: '0 24px 60px rgba(15, 23, 42, 0.16)'
+        fintech: '0 24px 60px rgba(15, 23, 42, 0.16)',
+        premium: '0 24px 70px rgba(15, 23, 42, 0.22)',
+        glass: '0 18px 48px rgba(15, 23, 42, 0.14)',
+        'glass-dark': '0 18px 54px rgba(2, 6, 23, 0.38)'
+      },
+      keyframes: {
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' }
+        }
+      },
+      animation: {
+        shimmer: 'shimmer 2.4s linear infinite'
       },
       backgroundImage: {
         'fintech-mesh':

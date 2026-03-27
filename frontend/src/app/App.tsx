@@ -6,8 +6,11 @@ import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { BarChart, Bar, CartesianGrid, Legend, LineChart, Line, PieChart, Pie, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
 import { Navbar, type NavItem } from '../components/Navbar';
+import { FinanceCard } from '../components/FinanceCard';
 import { Dashboard } from './Dashboard';
 import { ErrorBanner } from '../components/ErrorBanner';
+import { MotionButton } from '../components/MotionButton';
+import { PageWrapper } from '../components/PageWrapper';
 import { extractErrorMessage, formatCurrency } from '../utils/ui';
 import { downloadReportsPdf } from '../utils/reportExport';
 
@@ -263,7 +266,7 @@ function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const errorMessage = extractErrorMessage(mutation.error);
 
   return (
-    <div className="min-h-screen overflow-hidden px-4 py-10">
+    <PageWrapper pageKey={`auth-${mode}`} className="min-h-screen overflow-hidden px-4 py-10">
       <div className="ambient ambient-one" />
       <div className="ambient ambient-two" />
       <div className="auth-shell">
@@ -296,13 +299,13 @@ function AuthPage({ mode }: { mode: 'login' | 'register' }) {
             <div><label className="label">Email</label><input className="input" {...register('email')} /></div>
             <div><label className="label">Password</label><input type="password" className="input" {...register('password')} /></div>
             {errorMessage && <ErrorBanner message={errorMessage} />}
-            <button className="btn-primary w-full" disabled={mutation.isPending}>
+            <MotionButton className="w-full" disabled={mutation.isPending}>
               {mutation.isPending
                 ? 'Please wait...'
                 : mode === 'register'
                   ? 'Create account'
                   : 'Login'}
-            </button>
+            </MotionButton>
           </form>
           <div className="mt-5 flex flex-wrap gap-3 text-sm">
             {authLinks.map((link) => (
@@ -313,7 +316,7 @@ function AuthPage({ mode }: { mode: 'login' | 'register' }) {
           </div>
         </div>
       </div>
-    </div>
+    </PageWrapper>
   );
 }
 
@@ -325,7 +328,51 @@ function ResourcePage({ title, endpoint, fields }: { title: string; endpoint: st
   const rows = Array.isArray(query.data) ? query.data : query.data?.content ?? [];
   const errorMessage = extractErrorMessage(mutation.error) || extractErrorMessage(query.error);
 
-  return <div className="space-y-6"><PageHeader eyebrow="Workspace" title={title} description={`Add and review ${title.toLowerCase()} in one place.`} />{errorMessage && <ErrorBanner message={errorMessage} />}<div className="grid gap-6 lg:grid-cols-[320px_1fr]"><form className="card space-y-3" onSubmit={handleSubmit((values) => mutation.mutate(values))}>{fields.map((f) => <div key={f.name}><label className="label">{f.label}</label><FieldInput field={f} register={register} /></div>)}<button className="btn-primary w-full">Add</button></form><div className="card overflow-auto"><table className="data-table w-full text-left text-sm"><thead><tr>{fields.map((f) => <th key={f.name} className="py-2">{f.label}</th>)}</tr></thead><tbody>{rows.map((row: any) => <tr key={row.id}>{fields.map((f) => <td key={f.name} className="py-3">{renderResourceCell(row, f)}</td>)}</tr>)}</tbody></table></div></div></div>;
+  return (
+    <PageWrapper pageKey={`resource-${endpoint}`} className="space-y-6">
+      <PageHeader eyebrow="Workspace" title={title} description={`Add and review ${title.toLowerCase()} in one place.`} />
+      {errorMessage && <ErrorBanner message={errorMessage} />}
+      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+        <FinanceCard className="space-y-3">
+          <form className="space-y-3" onSubmit={handleSubmit((values) => mutation.mutate(values))}>
+            {fields.map((field) => (
+              <div key={field.name}>
+                <label className="label">{field.label}</label>
+                <FieldInput field={field} register={register} />
+              </div>
+            ))}
+            <MotionButton type="submit" className="w-full">
+              Add
+            </MotionButton>
+          </form>
+        </FinanceCard>
+        <FinanceCard className="overflow-auto list-fade-mask">
+          <table className="data-table w-full text-left text-sm">
+            <thead>
+              <tr>
+                {fields.map((field) => (
+                  <th key={field.name} className="py-2">
+                    {field.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row: any) => (
+                <tr key={row.id}>
+                  {fields.map((field) => (
+                    <td key={field.name} className="py-3">
+                      {renderResourceCell(row, field)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </FinanceCard>
+      </div>
+    </PageWrapper>
+  );
 }
 
 function TransactionsPage() {
@@ -361,69 +408,71 @@ function TransactionsPage() {
   const errorMessage = extractErrorMessage(mutation.error) || extractErrorMessage(transactions.error) || extractErrorMessage(accounts.error) || extractErrorMessage(categories.error);
 
   return (
-    <div className="space-y-6">
+    <PageWrapper pageKey="transactions" className="space-y-6">
       <PageHeader eyebrow="Money Flow" title="Transactions" description="Add expenses, income, and transfers with cleaner transaction details." />
       {errorMessage && <ErrorBanner message={errorMessage} />}
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-        <form
-          className="card space-y-3"
-          onSubmit={handleSubmit((values) =>
-            mutation.mutate({
-              ...values,
-              accountId: values.accountId || undefined,
-              destinationAccountId: values.type === 'TRANSFER' ? values.destinationAccountId || undefined : undefined,
-              categoryId: values.type === 'TRANSFER' ? undefined : values.categoryId || undefined,
-              merchant: values.merchant || undefined,
-              note: values.note || undefined,
-              paymentMethod: values.paymentMethod || undefined
-            })
-          )}
-        >
-          <div>
-            <label className="label">Type</label>
-            <FieldInput field={{ name: 'type', label: 'Type', options: transactionTypeOptions }} register={register} />
-          </div>
-          <div>
-            <label className="label">Amount</label>
-            <input type="number" step="0.01" className="input" {...register('amount')} />
-          </div>
-          <div>
-            <label className="label">Date</label>
-            <input type="date" className="input" {...register('transactionDate')} />
-          </div>
-          <div>
-            <label className="label">Account</label>
-            <FieldInput field={{ name: 'accountId', label: 'Account', options: accountOptions }} register={register} />
-          </div>
-          {selectedType === 'TRANSFER' ? (
+        <FinanceCard>
+          <form
+            className="space-y-3"
+            onSubmit={handleSubmit((values) =>
+              mutation.mutate({
+                ...values,
+                accountId: values.accountId || undefined,
+                destinationAccountId: values.type === 'TRANSFER' ? values.destinationAccountId || undefined : undefined,
+                categoryId: values.type === 'TRANSFER' ? undefined : values.categoryId || undefined,
+                merchant: values.merchant || undefined,
+                note: values.note || undefined,
+                paymentMethod: values.paymentMethod || undefined
+              })
+            )}
+          >
             <div>
-              <label className="label">Destination account</label>
-              <FieldInput field={{ name: 'destinationAccountId', label: 'Destination account', options: accountOptions }} register={register} />
+              <label className="label">Type</label>
+              <FieldInput field={{ name: 'type', label: 'Type', options: transactionTypeOptions }} register={register} />
             </div>
-          ) : (
             <div>
-              <label className="label">Category</label>
-              <FieldInput field={{ name: 'categoryId', label: 'Category', options: categoryOptions }} register={register} />
+              <label className="label">Amount</label>
+              <input type="number" step="0.01" className="input" {...register('amount')} />
             </div>
-          )}
-          <div>
-            <label className="label">Payment method</label>
-            <FieldInput field={{ name: 'paymentMethod', label: 'Payment method', options: paymentMethodOptions }} register={register} />
-          </div>
-          <div>
-            <label className="label">Merchant</label>
-            <input className="input" {...register('merchant')} />
-          </div>
-          <div>
-            <label className="label">Note</label>
-            <input className="input" {...register('note')} />
-          </div>
-          <button className="btn-primary w-full" disabled={!accountOptions.length || (selectedType !== 'TRANSFER' && !categoryOptions.length)}>
-            Add
-          </button>
-          {!accountOptions.length && <p className="text-sm text-slate-500">Create an account first from the Accounts page.</p>}
-        </form>
-        <div className="card overflow-auto">
+            <div>
+              <label className="label">Date</label>
+              <input type="date" className="input" {...register('transactionDate')} />
+            </div>
+            <div>
+              <label className="label">Account</label>
+              <FieldInput field={{ name: 'accountId', label: 'Account', options: accountOptions }} register={register} />
+            </div>
+            {selectedType === 'TRANSFER' ? (
+              <div>
+                <label className="label">Destination account</label>
+                <FieldInput field={{ name: 'destinationAccountId', label: 'Destination account', options: accountOptions }} register={register} />
+              </div>
+            ) : (
+              <div>
+                <label className="label">Category</label>
+                <FieldInput field={{ name: 'categoryId', label: 'Category', options: categoryOptions }} register={register} />
+              </div>
+            )}
+            <div>
+              <label className="label">Payment method</label>
+              <FieldInput field={{ name: 'paymentMethod', label: 'Payment method', options: paymentMethodOptions }} register={register} />
+            </div>
+            <div>
+              <label className="label">Merchant</label>
+              <input className="input" {...register('merchant')} />
+            </div>
+            <div>
+              <label className="label">Note</label>
+              <input className="input" {...register('note')} />
+            </div>
+            <MotionButton type="submit" className="w-full" disabled={!accountOptions.length || (selectedType !== 'TRANSFER' && !categoryOptions.length)}>
+              Add
+            </MotionButton>
+            {!accountOptions.length && <p className="text-sm text-slate-500">Create an account first from the Accounts page.</p>}
+          </form>
+        </FinanceCard>
+        <FinanceCard className="overflow-auto list-fade-mask">
           <table className="data-table w-full text-left text-sm">
             <thead>
               <tr>
@@ -448,9 +497,9 @@ function TransactionsPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </FinanceCard>
       </div>
-    </div>
+    </PageWrapper>
   );
 }
 
@@ -498,74 +547,76 @@ function BudgetsPage() {
     extractErrorMessage(categories.error);
 
   return (
-    <div className="space-y-6">
+    <PageWrapper pageKey="budgets" className="space-y-6">
       <PageHeader eyebrow="Discipline Layer" title="Budgets" description="Track category limits and spot overspending early." />
       {errorMessage && <ErrorBanner message={errorMessage} />}
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-        <form
-          className="card space-y-3"
-          onSubmit={handleSubmit((values) => {
-            const requestedAmount = Number(values.amount || 0);
-            const nextBudgetAmount = Number((existingBudgetAmount + requestedAmount).toFixed(2));
-            const payload = {
-              categoryId: values.categoryId,
-              amount: values.amount,
-              budgetMonth: Number(values.budgetMonth),
-              budgetYear: Number(values.budgetYear)
-            };
+        <FinanceCard>
+          <form
+            className="space-y-3"
+            onSubmit={handleSubmit((values) => {
+              const requestedAmount = Number(values.amount || 0);
+              const nextBudgetAmount = Number((existingBudgetAmount + requestedAmount).toFixed(2));
+              const payload = {
+                categoryId: values.categoryId,
+                amount: values.amount,
+                budgetMonth: Number(values.budgetMonth),
+                budgetYear: Number(values.budgetYear)
+              };
 
-            if (existingBudget) {
-              const shouldUpdate = window.confirm(
-                `Budget already exists for ${existingBudget.categoryName}. Current budget is ${formatCurrency(existingBudgetAmount)}. Add ${formatCurrency(requestedAmount)} and update it to ${formatCurrency(nextBudgetAmount)}?`
-              );
+              if (existingBudget) {
+                const shouldUpdate = window.confirm(
+                  `Budget already exists for ${existingBudget.categoryName}. Current budget is ${formatCurrency(existingBudgetAmount)}. Add ${formatCurrency(requestedAmount)} and update it to ${formatCurrency(nextBudgetAmount)}?`
+                );
 
-              if (!shouldUpdate) {
+                if (!shouldUpdate) {
+                  return;
+                }
+
+                updateBudget.mutate({
+                  id: existingBudget.id,
+                  payload: {
+                    ...payload,
+                    amount: nextBudgetAmount.toFixed(2)
+                  }
+                });
                 return;
               }
 
-              updateBudget.mutate({
-                id: existingBudget.id,
-                payload: {
-                  ...payload,
-                  amount: nextBudgetAmount.toFixed(2)
-                }
-              });
-              return;
-            }
-
-            createBudget.mutate(payload);
-          })}
-        >
-          <div>
-            <label className="label">Category</label>
-            <FieldInput field={{ name: 'categoryId', label: 'Category', options: categoryOptions }} register={register} />
-          </div>
-          <div>
-            <label className="label">Amount</label>
-            <input type="number" step="0.01" className="input" {...register('amount')} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
+              createBudget.mutate(payload);
+            })}
+          >
             <div>
-              <label className="label">Month</label>
-              <input type="number" min="1" max="12" className="input" {...register('budgetMonth')} />
+              <label className="label">Category</label>
+              <FieldInput field={{ name: 'categoryId', label: 'Category', options: categoryOptions }} register={register} />
             </div>
             <div>
-              <label className="label">Year</label>
-              <input type="number" min="2000" className="input" {...register('budgetYear')} />
+              <label className="label">Amount</label>
+              <input type="number" step="0.01" className="input" {...register('amount')} />
             </div>
-          </div>
-          {existingBudget ? (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
-              A budget already exists for this category in the selected month. New entries will be added to the current budget.
-              {enteredAmount > 0 ? ` Current: ${formatCurrency(existingBudgetAmount)}. New total: ${formatCurrency(combinedBudgetAmount)}.` : ''}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">Month</label>
+                <input type="number" min="1" max="12" className="input" {...register('budgetMonth')} />
+              </div>
+              <div>
+                <label className="label">Year</label>
+                <input type="number" min="2000" className="input" {...register('budgetYear')} />
+              </div>
             </div>
-          ) : null}
-          <button className="btn-primary w-full" disabled={!categoryOptions.length || createBudget.isPending || updateBudget.isPending}>
-            {createBudget.isPending || updateBudget.isPending ? 'Saving...' : existingBudget ? 'Add to budget' : 'Add budget'}
-          </button>
-          {!categoryOptions.length && <p className="text-sm text-slate-500">Create an expense category first from Categories (created automatically on signup).</p>}
-        </form>
-        <div className="card overflow-auto">
+            {existingBudget ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+                A budget already exists for this category in the selected month. New entries will be added to the current budget.
+                {enteredAmount > 0 ? ` Current: ${formatCurrency(existingBudgetAmount)}. New total: ${formatCurrency(combinedBudgetAmount)}.` : ''}
+              </div>
+            ) : null}
+            <MotionButton type="submit" className="w-full" disabled={!categoryOptions.length || createBudget.isPending || updateBudget.isPending}>
+              {createBudget.isPending || updateBudget.isPending ? 'Saving...' : existingBudget ? 'Add to budget' : 'Add budget'}
+            </MotionButton>
+            {!categoryOptions.length && <p className="text-sm text-slate-500">Create an expense category first from Categories (created automatically on signup).</p>}
+          </form>
+        </FinanceCard>
+        <FinanceCard className="overflow-auto list-fade-mask">
           <table className="data-table w-full text-left text-sm">
             <thead>
               <tr>
@@ -590,14 +641,18 @@ function BudgetsPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </FinanceCard>
       </div>
-    </div>
+    </PageWrapper>
   );
 }
 
 function DashboardPage() {
-  return <Dashboard />;
+  return (
+    <PageWrapper pageKey="dashboard">
+      <Dashboard />
+    </PageWrapper>
+  );
 }
 
 function ReportsPage() {
@@ -719,25 +774,25 @@ function ReportsPage() {
   const errorMessage = extractErrorMessage(category.error) || extractErrorMessage(trend.error) || extractErrorMessage(advancedTrends.error) || extractErrorMessage(netWorth.error) || extractErrorMessage(exportMutation.error) || extractErrorMessage(pdfExportMutation.error);
 
   return (
-    <div className="space-y-6">
+    <PageWrapper pageKey="reports" className="space-y-6">
       <PageHeader
         eyebrow="Advanced Reporting"
         title="Spending, savings, and net worth over time."
         description="Compare category trends, savings rate, and balance movement with simpler visuals."
         actions={
           <div className="flex flex-wrap gap-3">
-            <button className="btn-secondary" onClick={() => pdfExportMutation.mutate()} disabled={pdfExportMutation.isPending}>
+            <MotionButton variant="secondary" onClick={() => pdfExportMutation.mutate()} disabled={pdfExportMutation.isPending}>
               {pdfExportMutation.isPending ? 'Preparing PDF...' : 'Download PDF report'}
-            </button>
-            <button className="btn-primary" onClick={() => exportMutation.mutate()} disabled={exportMutation.isPending}>
+            </MotionButton>
+            <MotionButton onClick={() => exportMutation.mutate()} disabled={exportMutation.isPending}>
               {exportMutation.isPending ? 'Preparing CSV...' : 'Download CSV export'}
-            </button>
+            </MotionButton>
           </div>
         }
       />
       {errorMessage && <ErrorBanner message={errorMessage} />}
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="card h-[26rem] chart-panel">
+        <FinanceCard className="h-[26rem] chart-panel">
           <SectionTitle title="Category spend" description="Top expense buckets in the selected period" />
           <div ref={categoryChartRef} className="h-[20rem] w-full">
             <ResponsiveContainer>
@@ -750,8 +805,8 @@ function ReportsPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
-        <div className="card h-[26rem] chart-panel">
+        </FinanceCard>
+        <FinanceCard className="h-[26rem] chart-panel">
           <SectionTitle title="Income vs expense" description="Monthly inflow versus outflow with clearer scaling" />
           <div ref={trendChartRef} className="h-[20rem] w-full">
             <ResponsiveContainer>
@@ -770,10 +825,10 @@ function ReportsPage() {
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </FinanceCard>
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="card h-[26rem] chart-panel">
+        <FinanceCard className="h-[26rem] chart-panel">
           <SectionTitle title="Savings rate trend" description="A cleaner view of monthly saving momentum" />
           <div ref={savingsChartRef} className="h-[20rem] w-full">
             <ResponsiveContainer>
@@ -786,8 +841,8 @@ function ReportsPage() {
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
-        <div className="card h-[26rem] chart-panel">
+        </FinanceCard>
+        <FinanceCard className="h-[26rem] chart-panel">
           <SectionTitle title="Net worth tracking" description="Estimated balance trajectory with clearer spacing" />
           <div ref={netWorthChartRef} className="h-[20rem] w-full">
             <ResponsiveContainer>
@@ -800,9 +855,9 @@ function ReportsPage() {
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </FinanceCard>
       </div>
-    </div>
+    </PageWrapper>
   );
 }
 
@@ -813,11 +868,11 @@ function InsightsPage() {
   const errorMessage = extractErrorMessage(healthScore.error) || extractErrorMessage(insights.error) || extractErrorMessage(trends.error);
 
   return (
-    <div className="space-y-6">
+    <PageWrapper pageKey="insights" className="space-y-6">
       <PageHeader eyebrow="Insight Engine" title="One score, with simple reasons behind it." description="See what is improving, what is slipping, and what to do next." />
       {errorMessage && <ErrorBanner message={errorMessage} />}
       <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
-        <div className="card">
+        <FinanceCard>
           <div className="text-sm text-slate-500">Financial health score</div>
           <div className="mt-2 text-4xl font-bold text-primary">{healthScore.data?.score ?? 0}</div>
           <div className="mt-6 space-y-4">
@@ -834,8 +889,8 @@ function InsightsPage() {
               </div>
             ))}
           </div>
-        </div>
-        <div className="card h-96 chart-panel">
+        </FinanceCard>
+        <FinanceCard className="h-96 chart-panel">
           <SectionTitle title="Savings trend" description="Six-month view of saving momentum" />
           <ResponsiveContainer>
             <LineChart data={trends.data || []}>
@@ -846,25 +901,25 @@ function InsightsPage() {
               <Line type="monotone" dataKey="savingsRate" stroke="#0f766e" strokeWidth={3} />
             </LineChart>
           </ResponsiveContainer>
-        </div>
+        </FinanceCard>
       </div>
-      <div className="card">
+      <FinanceCard>
         <SectionTitle title="Suggestions" description="High-impact next steps based on the score" />
         <div className="grid gap-3 md:grid-cols-2">
           {(healthScore.data?.suggestions || []).map((suggestion: string) => (
             <div key={suggestion} className="insight-card text-sm text-slate-700">{suggestion}</div>
           ))}
         </div>
-      </div>
+      </FinanceCard>
       <div className="grid gap-4 md:grid-cols-3">
         {(insights.data || []).map((item: any) => (
-          <div key={item.title} className="card">
+          <FinanceCard key={item.title}>
             <div className="text-sm font-semibold">{item.title}</div>
             <div className="mt-2 text-sm text-slate-600">{item.message}</div>
-          </div>
+          </FinanceCard>
         ))}
       </div>
-    </div>
+    </PageWrapper>
   );
 }
 
@@ -913,29 +968,30 @@ function RulesPage() {
   const errorMessage = extractErrorMessage(rules.error) || extractErrorMessage(categories.error) || extractErrorMessage(createRule.error) || extractErrorMessage(updateRule.error) || extractErrorMessage(deleteRule.error);
 
   return (
-    <div className="space-y-6">
+    <PageWrapper pageKey="rules" className="space-y-6">
       <PageHeader eyebrow="Automation Layer" title="Create simple rules for recurring money actions." description="Use merchant, amount, and category rules for categorization, tags, and alerts." />
       {errorMessage && <ErrorBanner message={errorMessage} />}
       <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
-        <form
-          className="card space-y-3"
-          onSubmit={handleSubmit((values) =>
-            createRule.mutate({
-              name: values.name,
-              priority: Number(values.priority),
-              condition: {
-                field: values.conditionField,
-                operator: values.conditionOperator,
-                value: values.conditionValue
-              },
-              action: {
-                type: values.actionType,
-                value: values.actionValue
-              },
-              active: values.isActive === 'true'
-            })
-          )}
-        >
+        <FinanceCard>
+          <form
+            className="space-y-3"
+            onSubmit={handleSubmit((values) =>
+              createRule.mutate({
+                name: values.name,
+                priority: Number(values.priority),
+                condition: {
+                  field: values.conditionField,
+                  operator: values.conditionOperator,
+                  value: values.conditionValue
+                },
+                action: {
+                  type: values.actionType,
+                  value: values.actionValue
+                },
+                active: values.isActive === 'true'
+              })
+            )}
+          >
           <div>
             <label className="label">Rule name</label>
             <input className="input" {...register('name')} />
@@ -978,9 +1034,10 @@ function RulesPage() {
             <label className="label">Status</label>
             <FieldInput field={{ name: 'isActive', label: 'Status', options: [{ value: 'true', label: 'Enabled' }, { value: 'false', label: 'Disabled' }] }} register={register} />
           </div>
-          <button className="btn-primary w-full" disabled={createRule.isPending}>Create rule</button>
-        </form>
-        <div className="card overflow-auto">
+            <MotionButton type="submit" className="w-full" disabled={createRule.isPending}>Create rule</MotionButton>
+          </form>
+        </FinanceCard>
+        <FinanceCard className="overflow-auto list-fade-mask">
           <table className="data-table w-full text-left text-sm">
             <thead>
               <tr>
@@ -1000,9 +1057,9 @@ function RulesPage() {
                   <td className="py-3">{rule.active ? 'Enabled' : 'Disabled'}</td>
                   <td className="py-3">
                     <div className="flex gap-2">
-                      <button
+                      <MotionButton
                         type="button"
-                        className="btn-secondary"
+                        variant="secondary"
                         onClick={() =>
                           updateRule.mutate({
                             id: rule.id,
@@ -1017,23 +1074,23 @@ function RulesPage() {
                         }
                       >
                         Toggle
-                      </button>
-                      <button type="button" className="btn-secondary" onClick={() => deleteRule.mutate(rule.id)}>Delete</button>
+                      </MotionButton>
+                      <MotionButton type="button" variant="secondary" onClick={() => deleteRule.mutate(rule.id)}>Delete</MotionButton>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </FinanceCard>
       </div>
-    </div>
+    </PageWrapper>
   );
 }
 
 function SettingsPage() {
   const { user, logout } = useAuthStore();
-  return <div className="space-y-6"><PageHeader eyebrow="Profile & Environment" title="Settings" description="Basic profile and environment information." /><div className="card max-w-xl"><div className="mt-4 space-y-4 text-sm"><div><strong>Name:</strong> {user?.displayName}</div><div><strong>Email:</strong> {user?.email}</div><button type="button" className="btn-secondary mt-4 w-full sm:w-auto" onClick={logout}>Logout</button></div></div></div>;
+  return <PageWrapper pageKey="settings" className="space-y-6"><PageHeader eyebrow="Profile & Environment" title="Settings" description="Basic profile and environment information." /><FinanceCard className="max-w-xl"><div className="mt-4 space-y-4 text-sm"><div><strong>Name:</strong> {user?.displayName}</div><div><strong>Email:</strong> {user?.email}</div><MotionButton type="button" variant="secondary" className="mt-4 w-full sm:w-auto" onClick={logout}>Logout</MotionButton></div></FinanceCard></PageWrapper>;
 }
 
 function Protected() {

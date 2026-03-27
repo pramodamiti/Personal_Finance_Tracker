@@ -188,22 +188,138 @@
   }
 
   .auth-showcase {
-    @apply rounded-[28px] border border-white/70 px-6 py-7 text-slate-950 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-slate-700/70 dark:text-white;
+    @apply rounded-[32px] border border-white/70 px-6 py-7 text-slate-950 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-slate-700/70 dark:text-white;
     background:
-      radial-gradient(circle at top left, rgba(16, 185, 129, 0.08), transparent 28%),
-      radial-gradient(circle at top right, rgba(30, 58, 138, 0.1), transparent 30%),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(248, 250, 252, 0.94));
+      radial-gradient(circle at top left, rgba(14, 165, 233, 0.12), transparent 28%),
+      radial-gradient(circle at top right, rgba(245, 158, 11, 0.16), transparent 26%),
+      radial-gradient(circle at 70% 80%, rgba(16, 185, 129, 0.14), transparent 28%),
+      linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(246, 250, 255, 0.94));
   }
 
   html.dark .auth-showcase {
     background:
-      radial-gradient(circle at top left, rgba(16, 185, 129, 0.1), transparent 28%),
-      radial-gradient(circle at top right, rgba(30, 58, 138, 0.16), transparent 30%),
-      linear-gradient(180deg, rgba(15, 23, 42, 0.84), rgba(15, 23, 42, 0.96));
+      radial-gradient(circle at top left, rgba(14, 165, 233, 0.16), transparent 28%),
+      radial-gradient(circle at top right, rgba(245, 158, 11, 0.15), transparent 24%),
+      radial-gradient(circle at 70% 80%, rgba(16, 185, 129, 0.14), transparent 26%),
+      linear-gradient(135deg, rgba(15, 23, 42, 0.86), rgba(9, 16, 31, 0.96));
   }
 
   .auth-card {
     @apply surface rounded-[28px] p-6 sm:p-7;
+  }
+
+  .theme-toggle {
+    @apply inline-flex items-center gap-2 rounded-full border border-white/70 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600 shadow-sm backdrop-blur-md dark:border-white/10 dark:text-slate-300;
+    background-color: rgb(255 255 255 / 0.72);
+  }
+
+  .theme-toggle-orb {
+    @apply h-2.5 w-2.5 rounded-full bg-gradient-to-r from-amber-400 to-sky-500;
+  }
+
+  html.dark .theme-toggle {
+    background-color: rgb(15 23 42 / 0.68);
+  }
+
+  .auth-carousel-shell {
+    @apply mt-8 space-y-5;
+  }
+
+  .auth-carousel-grid {
+    @apply grid gap-5 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-stretch;
+  }
+
+  .auth-slide-pill {
+    @apply inline-flex rounded-full border border-sky-300/70 bg-sky-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-700 dark:border-sky-400/30 dark:bg-sky-400/10 dark:text-sky-200;
+  }
+
+  .auth-hero-title {
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    @apply mt-5 max-w-xl text-[2.2rem] font-semibold leading-[1.03] tracking-[-0.05em] text-slate-950 dark:text-white sm:text-[3rem];
+  }
+
+  .auth-hero-copy {
+    @apply mt-4 max-w-xl text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base;
+  }
+
+  .auth-stat {
+    @apply rounded-[22px] border border-white/70 p-4 shadow-sm backdrop-blur-md dark:border-slate-700/70;
+    background-color: rgb(255 255 255 / 0.74);
+  }
+
+  .auth-stat-label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400;
+  }
+
+  .auth-stat-value {
+    @apply mt-3 text-xl font-semibold tracking-[-0.03em] text-slate-950 dark:text-white;
+  }
+
+  .auth-orbit-panel {
+    @apply rounded-[28px] border border-white/70 p-4 shadow-sm backdrop-blur-md dark:border-slate-700/70;
+    background-color: rgb(255 255 255 / 0.7);
+  }
+
+  .auth-orbit-card {
+    @apply relative flex h-full min-h-[220px] flex-col justify-between overflow-hidden rounded-[24px] p-5;
+    background: linear-gradient(145deg, rgba(30, 41, 59, 0.94), rgba(15, 23, 42, 0.72));
+  }
+
+  .auth-orbit-cool {
+    box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.18);
+  }
+
+  .auth-orbit-warm {
+    box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.2);
+  }
+
+  .auth-orbit-emerald {
+    box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.18);
+  }
+
+  .auth-orbit-line {
+    @apply h-3 rounded-full;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.24));
+  }
+
+  .auth-orbit-line.short {
+    width: 42%;
+  }
+
+  .auth-orbit-line.wide {
+    width: 78%;
+  }
+
+  .auth-orbit-chip {
+    @apply inline-flex w-fit rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/80;
+    background-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .auth-orbit-footprint {
+    @apply mt-10 flex items-center gap-2;
+  }
+
+  .auth-orbit-footprint span {
+    @apply h-2.5 rounded-full;
+    flex: 1;
+    background: linear-gradient(90deg, rgba(14, 165, 233, 0.82), rgba(16, 185, 129, 0.68), rgba(245, 158, 11, 0.82));
+  }
+
+  .auth-carousel-dots {
+    @apply flex items-center gap-2;
+  }
+
+  .auth-carousel-dot {
+    @apply h-2.5 w-8 rounded-full border-0 bg-slate-300/80 transition-all duration-500 ease-in-out dark:bg-slate-700;
+  }
+
+  .auth-carousel-dot.is-active {
+    @apply w-12 bg-gradient-to-r from-sky-500 via-primary to-amber-400;
+  }
+
+  html.dark .auth-stat,
+  html.dark .auth-orbit-panel {
+    background-color: rgb(15 23 42 / 0.72);
   }
 
   .card {

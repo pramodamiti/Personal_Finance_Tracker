@@ -1,9 +1,11 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AnimatePresence, motion } from 'framer-motion';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import { useThemeStore } from '../store/themeStore';
 import { BarChart, Bar, CartesianGrid, Legend, LineChart, Line, PieChart, Pie, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
 import { Navbar, type NavItem } from '../components/Navbar';
 import { FinanceCard } from '../components/FinanceCard';
@@ -252,6 +254,41 @@ function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const navigate = useNavigate();
   const { register, handleSubmit } = useForm<Record<string, string>>();
   const setAuth = useAuthStore((s) => s.setAuth);
+  const theme = useThemeStore((s) => s.theme);
+  const toggleTheme = useThemeStore((s) => s.toggleTheme);
+  const carouselSlides = [
+    {
+      eyebrow: 'Forecast',
+      title: 'See your month ahead.',
+      body: 'Track your balance, spot risk early, and stay in control.',
+      tone: 'cool',
+      stats: [
+        { label: 'Projection', value: '31 days' },
+        { label: 'Signal quality', value: 'Live' }
+      ]
+    },
+    {
+      eyebrow: 'Budgets',
+      title: 'Keep spending easy to read.',
+      body: 'Watch category pacing and catch overspending faster.',
+      tone: 'warm',
+      stats: [
+        { label: 'Guardrails', value: 'Category-based' },
+        { label: 'Alerts', value: 'Smart' }
+      ]
+    },
+    {
+      eyebrow: 'Automation',
+      title: 'Let rules handle the repeat work.',
+      body: 'Auto-sort activity, trigger alerts, and save time.',
+      tone: 'emerald',
+      stats: [
+        { label: 'Rules', value: 'Custom' },
+        { label: 'Actions', value: 'Instant' }
+      ]
+    }
+  ] as const;
+  const [activeSlide, setActiveSlide] = useState(0);
   const authLinks = [
     { key: 'login', label: 'Login', to: '/login' },
     { key: 'register', label: 'Create account', to: '/register' }
@@ -265,19 +302,82 @@ function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   });
   const errorMessage = extractErrorMessage(mutation.error);
 
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setActiveSlide((current) => (current + 1) % carouselSlides.length);
+    }, 4600);
+
+    return () => window.clearInterval(interval);
+  }, [carouselSlides.length]);
+
   return (
     <PageWrapper pageKey={`auth-${mode}`} className="min-h-screen overflow-hidden px-4 py-10">
       <div className="ambient ambient-one" />
       <div className="ambient ambient-two" />
       <div className="auth-shell">
         <div className="auth-showcase">
-          <div className="brand-pill">Personal Finance Tracker</div>
-          <h1 className="mt-5 text-3xl font-semibold leading-tight text-slate-950 dark:text-white sm:text-4xl">
-            Keep everyday money decisions simple and clear.
-          </h1>
-          <p className="mt-4 max-w-xl text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base">
-            Track balances, understand future cash flow, and stay on top of budgets without the interface getting in your way.
-          </p>
+          <div className="flex items-start justify-between gap-4">
+            <div className="brand-pill">Personal Finance Tracker</div>
+            <button type="button" className="theme-toggle" onClick={toggleTheme}>
+              <span className="theme-toggle-orb" />
+              <span>{theme === 'dark' ? 'Dark mode' : 'Light mode'}</span>
+            </button>
+          </div>
+          <div className="auth-carousel-shell">
+            <div className="auth-carousel-grid">
+              <div>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={`${mode}-${activeSlide}`}
+                    initial={{ opacity: 0, y: 18 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -18 }}
+                    transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+                  >
+                    <div className="auth-slide-pill">{carouselSlides[activeSlide].eyebrow}</div>
+                    <h1 className="auth-hero-title">
+                      {carouselSlides[activeSlide].title}
+                    </h1>
+                    <p className="auth-hero-copy">
+                      {carouselSlides[activeSlide].body}
+                    </p>
+                    <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                      {carouselSlides[activeSlide].stats.map((stat) => (
+                        <div key={stat.label} className="auth-stat">
+                          <div className="auth-stat-label">{stat.label}</div>
+                          <div className="auth-stat-value">{stat.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+              <div className="auth-orbit-panel">
+                <div className={`auth-orbit-card auth-orbit-${carouselSlides[activeSlide].tone}`}>
+                  <div className="auth-orbit-line" />
+                  <div className="auth-orbit-line short" />
+                  <div className="auth-orbit-line wide" />
+                  <div className="auth-orbit-chip">Live preview</div>
+                  <div className="auth-orbit-footprint">
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="auth-carousel-dots">
+              {carouselSlides.map((slide, index) => (
+                <button
+                  key={slide.title}
+                  type="button"
+                  className={`auth-carousel-dot ${index === activeSlide ? 'is-active' : ''}`}
+                  onClick={() => setActiveSlide(index)}
+                  aria-label={`Show slide ${index + 1}`}
+                />
+              ))}
+            </div>
+          </div>
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
             <MetricCard label="Forecasting" value="Daily" meta="Month-end balance view" tone="cool" />
             <MetricCard label="Health Score" value="0-100" meta="Savings and cash buffer" tone="emerald" />
@@ -291,8 +391,8 @@ function AuthPage({ mode }: { mode: 'login' | 'register' }) {
           </h2>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
             {mode === 'register'
-              ? 'Set up your account and start tracking money in one place.'
-              : 'Use your email and password to continue.'}
+              ? 'Start tracking everything in one place.'
+              : 'Enter your email and password.'}
           </p>
           <form className="mt-8 space-y-4" onSubmit={handleSubmit((values) => mutation.mutate(values))}>
             {mode !== 'login' && <div><label className="label">Display name</label><input className="input" {...register('displayName')} /></div>}

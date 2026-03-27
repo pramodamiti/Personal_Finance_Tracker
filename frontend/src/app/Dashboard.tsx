@@ -142,18 +142,18 @@ export function Dashboard() {
         <div className="relative grid gap-7 xl:grid-cols-[minmax(0,1.25fr)_380px] xl:items-end">
           <div className="max-w-4xl">
             <div className="dashboard-pill">
-              Cash Runway Cockpit
+              Dashboard
             </div>
             <h1 className="hero-title">
-              Make your next money move with clearer signals, better pacing, and less guesswork.
+              Track balances, spending, and what comes next.
             </h1>
             <p className="hero-description">
-              This dashboard is built like an operating console: it surfaces runway, concentration risk, cash posture, and execution signals so a judge can see both product taste and engineering control in a single glance.
+              See your month clearly with forecasts, budgets, trends, and recent activity.
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
-              <span className="signal-chip">Runway Focus</span>
-              <span className="signal-chip">Command Center</span>
-              <span className="signal-chip">Forecast Intelligence</span>
+              <span className="signal-chip">Forecast</span>
+              <span className="signal-chip">Budgets</span>
+              <span className="signal-chip">Insights</span>
             </div>
           </div>
           <div className="grid gap-4">
@@ -191,7 +191,7 @@ export function Dashboard() {
                 {forecastMonth.isError ? 'Unavailable' : formatCurrency(projectedBalance)}
               </div>
               <div className="hero-metric-subtle">
-                The expected landing point if current behavior and scheduled commitments hold.
+                Expected balance at month end.
               </div>
             </motion.div>
             <motion.div layoutId="dashboard-summary-score" className="grid gap-4 sm:grid-cols-2">
@@ -203,7 +203,7 @@ export function Dashboard() {
                   {healthScore.isError ? 'Unavailable' : `${score} / 100`}
                 </div>
                 <div className="hero-metric-subtle">
-                  {healthScore.isError ? 'Weighted resilience score unavailable right now.' : `${scoreLabel} posture across savings, liquidity, and stability.`}
+                  {healthScore.isError ? 'Score unavailable right now.' : `${scoreLabel} across savings, liquidity, and stability.`}
                 </div>
               </div>
               <div className="hero-metric">
@@ -212,7 +212,7 @@ export function Dashboard() {
                   {forecastMonth.isError ? 'Unavailable' : formatCurrency(safeToSpend)}
                 </div>
                 <div className="hero-metric-subtle">
-                  Safe spend target before the month-end projection falls below the current plan.
+                  Safe amount left to spend this month.
                 </div>
               </div>
             </motion.div>

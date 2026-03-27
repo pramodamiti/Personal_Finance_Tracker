@@ -80,7 +80,12 @@
   }
 
   .surface {
-    @apply rounded-[24px] border border-white/70 bg-white/88 shadow-glass backdrop-blur-xl dark:border-slate-700/70 dark:bg-slate-900/78 dark:shadow-glass-dark;
+    @apply rounded-[24px] border border-white/70 shadow-glass backdrop-blur-xl dark:border-slate-700/70 dark:shadow-glass-dark;
+    background-color: rgb(255 255 255 / 0.88);
+  }
+
+  html.dark .surface {
+    background-color: rgb(15 23 42 / 0.78);
   }
 
   .layout-grid {

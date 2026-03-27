@@ -333,7 +333,7 @@ function ResourcePage({ title, endpoint, fields }: { title: string; endpoint: st
       <PageHeader eyebrow="Workspace" title={title} description={`Add and review ${title.toLowerCase()} in one place.`} />
       {errorMessage && <ErrorBanner message={errorMessage} />}
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-        <FinanceCard className="space-y-3">
+        <FinanceCard interactive={false} className="space-y-3">
           <form className="space-y-3" onSubmit={handleSubmit((values) => mutation.mutate(values))}>
             {fields.map((field) => (
               <div key={field.name}>
@@ -346,7 +346,7 @@ function ResourcePage({ title, endpoint, fields }: { title: string; endpoint: st
             </MotionButton>
           </form>
         </FinanceCard>
-        <FinanceCard className="overflow-auto list-fade-mask">
+        <FinanceCard interactive={false} className="overflow-auto list-fade-mask">
           <table className="data-table w-full text-left text-sm">
             <thead>
               <tr>
@@ -412,7 +412,7 @@ function TransactionsPage() {
       <PageHeader eyebrow="Money Flow" title="Transactions" description="Add expenses, income, and transfers with cleaner transaction details." />
       {errorMessage && <ErrorBanner message={errorMessage} />}
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-        <FinanceCard>
+        <FinanceCard interactive={false}>
           <form
             className="space-y-3"
             onSubmit={handleSubmit((values) =>
@@ -472,7 +472,7 @@ function TransactionsPage() {
             {!accountOptions.length && <p className="text-sm text-slate-500">Create an account first from the Accounts page.</p>}
           </form>
         </FinanceCard>
-        <FinanceCard className="overflow-auto list-fade-mask">
+        <FinanceCard interactive={false} className="overflow-auto list-fade-mask">
           <table className="data-table w-full text-left text-sm">
             <thead>
               <tr>
@@ -551,7 +551,7 @@ function BudgetsPage() {
       <PageHeader eyebrow="Discipline Layer" title="Budgets" description="Track category limits and spot overspending early." />
       {errorMessage && <ErrorBanner message={errorMessage} />}
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-        <FinanceCard>
+        <FinanceCard interactive={false}>
           <form
             className="space-y-3"
             onSubmit={handleSubmit((values) => {
@@ -616,7 +616,7 @@ function BudgetsPage() {
             {!categoryOptions.length && <p className="text-sm text-slate-500">Create an expense category first from Categories (created automatically on signup).</p>}
           </form>
         </FinanceCard>
-        <FinanceCard className="overflow-auto list-fade-mask">
+        <FinanceCard interactive={false} className="overflow-auto list-fade-mask">
           <table className="data-table w-full text-left text-sm">
             <thead>
               <tr>
@@ -872,7 +872,7 @@ function InsightsPage() {
       <PageHeader eyebrow="Insight Engine" title="One score, with simple reasons behind it." description="See what is improving, what is slipping, and what to do next." />
       {errorMessage && <ErrorBanner message={errorMessage} />}
       <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
-        <FinanceCard>
+        <FinanceCard interactive={false}>
           <div className="text-sm text-slate-500">Financial health score</div>
           <div className="mt-2 text-4xl font-bold text-primary">{healthScore.data?.score ?? 0}</div>
           <div className="mt-6 space-y-4">
@@ -1037,7 +1037,7 @@ function RulesPage() {
             <MotionButton type="submit" className="w-full" disabled={createRule.isPending}>Create rule</MotionButton>
           </form>
         </FinanceCard>
-        <FinanceCard className="overflow-auto list-fade-mask">
+        <FinanceCard interactive={false} className="overflow-auto list-fade-mask">
           <table className="data-table w-full text-left text-sm">
             <thead>
               <tr>

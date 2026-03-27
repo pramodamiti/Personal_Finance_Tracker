@@ -9,6 +9,7 @@ type FinanceCardProps = {
   layoutId?: string;
 } & Omit<HTMLMotionProps<'article'>, 'children'>;
 
+
 export function FinanceCard({
   children,
   className,

@@ -46,28 +46,31 @@ export function Topbar({ items, user, onLogout }: TopbarProps) {
         <div className="topbar-user">
           <button
             type="button"
-            className="topbar-theme-toggle"
+            className={clsx('topbar-theme-switch', theme === 'dark' ? 'is-dark' : 'is-light')}
             onClick={toggleTheme}
             aria-label="Toggle theme"
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >
-            {theme === 'dark' ? (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 3v2.5" />
-                <path d="M12 18.5V21" />
-                <path d="M4.5 4.5l1.8 1.8" />
-                <path d="M17.7 17.7l1.8 1.8" />
-                <path d="M3 12h2.5" />
-                <path d="M18.5 12H21" />
-                <path d="M4.5 19.5l1.8-1.8" />
-                <path d="M17.7 6.3l1.8-1.8" />
-              </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
-                <path d="M21 14.5a8.5 8.5 0 1 1-10.5-10.5 7 7 0 0 0 10.5 10.5z" />
-              </svg>
-            )}
+            <span className="theme-switch-label">{theme === 'dark' ? 'Dark mode' : 'Light mode'}</span>
+            <span className="theme-switch-knob" aria-hidden="true">
+              {theme === 'dark' ? (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4">
+                  <path d="M21 14.5a8.5 8.5 0 1 1-10.5-10.5 7 7 0 0 0 10.5 10.5z" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 3v2.5" />
+                  <path d="M12 18.5V21" />
+                  <path d="M4.5 4.5l1.8 1.8" />
+                  <path d="M17.7 17.7l1.8 1.8" />
+                  <path d="M3 12h2.5" />
+                  <path d="M18.5 12H21" />
+                  <path d="M4.5 19.5l1.8-1.8" />
+                  <path d="M17.7 6.3l1.8-1.8" />
+                </svg>
+              )}
+            </span>
           </button>
           <div className="topbar-user-text">
             <div className="topbar-user-name">{displayName}</div>

@@ -10,6 +10,7 @@ import { BarChart, Bar, CartesianGrid, Legend, LineChart, Line, PieChart, Pie, R
 import { Navbar, type NavItem } from '../components/Navbar';
 import { Topbar } from '../components/Topbar';
 import { FinanceCard } from '../components/FinanceCard';
+import { ThemeTransition } from '../components/ThemeTransition';
 import { Dashboard } from './Dashboard';
 import { LandingPage } from './Landing';
 import { ErrorBanner } from '../components/ErrorBanner';
@@ -1376,6 +1377,7 @@ export function App() {
   return (
     <>
       <ScrollToTop />
+      <ThemeTransition />
       <Routes>
         <Route path="/login" element={<AuthPage mode="login" />} />
         <Route path="/register" element={<AuthPage mode="register" />} />

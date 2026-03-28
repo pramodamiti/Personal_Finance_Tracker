@@ -72,13 +72,13 @@ export function StatsGrid({ items }: StatsGridProps) {
                 )}
               />
               <div className="relative min-w-0">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.26em] text-slate-500 dark:text-slate-400">
                   {item.label}
                 </div>
-                <div className="mt-5 min-w-0 text-[clamp(2rem,4vw,2.45rem)] font-semibold leading-[0.95] tracking-[-0.04em] text-slate-950 dark:text-white">
+                <div className="mt-4 min-w-0 text-[clamp(1.6rem,3.2vw,2.1rem)] font-semibold leading-[1] tracking-[-0.04em] text-slate-950 dark:text-white">
                   {item.value}
                 </div>
-                <p className="mt-4 max-w-[28ch] text-sm leading-6 text-slate-600 dark:text-slate-300">
+                <p className="mt-3 max-w-[28ch] text-[13px] leading-6 text-slate-600 dark:text-slate-300">
                   {item.hint}
                 </p>
               </div>

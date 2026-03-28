@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -122,6 +122,64 @@ export function Dashboard() {
     return [...primary, { category: 'Other', amount: otherTotal }];
   }
   const condensedSpending = condenseSpending(spending.data || []);
+  const totalSpending = (spending.data || []).reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
+  const spendingMixItems = condensedSpending.slice(0, isDetailed ? 4 : 3).map((item: any) => {
+    const amount = Number(item.amount || 0);
+    const share = totalSpending ? Math.round((amount / totalSpending) * 100) : 0;
+    return {
+      title: item.category,
+      subtitle: totalSpending ? `${share}% of spend` : 'Share unavailable',
+      value: formatCurrency(amount),
+      tone: item.category === 'Other' ? ('accent' as const) : ('default' as const)
+    };
+  });
+  const topSpendingItem = condensedSpending[0];
+  const carouselSlides = [
+    {
+      id: 'balance',
+      title: 'Total balance',
+      value: summary.isError ? '—' : formatCurrency(summary.data?.totalBalances),
+      subtitle: 'Across all accounts.'
+    },
+    {
+      id: 'buffer',
+      title: 'Safe to spend',
+      value: forecastMonth.isError ? '—' : formatCurrency(forecastMonth.data?.safeToSpend),
+      subtitle: 'Projected cash buffer.'
+    },
+    {
+      id: 'health',
+      title: 'Health score',
+      value: healthScore.isError ? '—' : `${score}/100`,
+      subtitle: healthScore.isError ? 'Score unavailable.' : `${scoreLabel} overall.`
+    },
+    {
+      id: 'spend',
+      title: 'Top spend',
+      value: topSpendingItem ? formatCurrency(topSpendingItem.amount) : '—',
+      subtitle: topSpendingItem ? `${topSpendingItem.category}` : 'No spending data yet.'
+    }
+  ];
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const carouselLength = carouselSlides.length;
+  const activeSlide = carouselSlides[carouselIndex] || carouselSlides[0];
+  const nextSlide = carouselSlides[(carouselIndex + 1) % carouselLength] || activeSlide;
+
+  useEffect(() => {
+    if (carouselIndex >= carouselLength) {
+      setCarouselIndex(0);
+    }
+  }, [carouselIndex, carouselLength]);
+
+  useEffect(() => {
+    if (prefersReducedMotion || carouselLength <= 1) {
+      return;
+    }
+    const interval = window.setInterval(() => {
+      setCarouselIndex((prev) => (prev + 1) % carouselLength);
+    }, 3600);
+    return () => window.clearInterval(interval);
+  }, [prefersReducedMotion, carouselLength]);
   const staggerItem = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -151,12 +209,48 @@ export function Dashboard() {
             <div className="dashboard-pill">
               Dashboard
             </div>
-            <h1 className="hero-title">Your money, clearly.</h1>
+            <h1 className="hero-title">See your finances at a glance.</h1>
             <p className="hero-description">Balances, spending, and what’s next.</p>
             <div className="mt-6 flex flex-wrap gap-2">
               <span className="signal-chip">Forecast</span>
               <span className="signal-chip">Budgets</span>
               <span className="signal-chip">Insights</span>
+            </div>
+            <div className="dashboard-carousel">
+              <div className="dashboard-carousel-track">
+                {carouselLength > 1 ? (
+                  <div className="carousel-card carousel-card-ghost" aria-hidden="true">
+                    <div className="carousel-title">{nextSlide.title}</div>
+                    <div className="carousel-value">{nextSlide.value}</div>
+                    <div className="carousel-subtle">{nextSlide.subtitle}</div>
+                  </div>
+                ) : null}
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeSlide.id}
+                    className="carousel-card is-active"
+                    initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                  >
+                    <div className="carousel-title">{activeSlide.title}</div>
+                    <div className="carousel-value">{activeSlide.value}</div>
+                    <div className="carousel-subtle">{activeSlide.subtitle}</div>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+              <div className="carousel-dots">
+                {carouselSlides.map((slide, index) => (
+                  <button
+                    key={slide.id}
+                    type="button"
+                    className={`carousel-dot ${index === carouselIndex ? 'is-active' : ''}`}
+                    onClick={() => setCarouselIndex(index)}
+                    aria-label={`Show ${slide.title}`}
+                  />
+                ))}
+              </div>
             </div>
           </div>
           <div className="grid gap-4">
@@ -278,34 +372,61 @@ export function Dashboard() {
 
         <motion.div variants={staggerItem} className="2xl:col-span-1">
           <FinanceCard className="h-full">
-            <DashboardSectionHeader
-              eyebrow="Signal Rail"
-              title="Forecast signals"
-              description="Top alerts and upcoming bills."
-            />
-            <div className="space-y-3">
-              {forecastMonth.isError ? (
-                <SectionMessage message="Signals unavailable." />
-              ) : limitedSignals.length ? (
-                <div className="space-y-3 list-fade-mask">
-                  {limitedSignals.map((item) => (
-                    <SignalItem
-                      key={`${item.title}-${item.subtitle}-${item.value ?? ''}`}
-                      title={item.title}
-                      subtitle={item.subtitle}
-                      value={item.value}
-                      tone={item.tone}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <SignalItem
-                  title="No risk warnings"
-                  subtitle="All clear right now."
-                  tone="accent"
+            {isDetailed ? (
+              <>
+                <DashboardSectionHeader
+                  eyebrow="Signal Rail"
+                  title="Forecast signals"
+                  description="Top alerts and upcoming bills."
                 />
-              )}
-            </div>
+                <div className="space-y-3">
+                  {forecastMonth.isError ? (
+                    <SectionMessage message="Signals unavailable." />
+                  ) : limitedSignals.length ? (
+                    <div className="space-y-3 list-fade-mask">
+                      {limitedSignals.map((item) => (
+                        <SignalItem
+                          key={`${item.title}-${item.subtitle}-${item.value ?? ''}`}
+                          title={item.title}
+                          subtitle={item.subtitle}
+                          value={item.value}
+                          tone={item.tone}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <SignalItem title="No risk warnings" subtitle="All clear right now." tone="accent" />
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <DashboardSectionHeader
+                  eyebrow="Concentration"
+                  title="Spending mix"
+                  description="Top spend categories."
+                />
+                <div className="space-y-3">
+                  {spending.isError ? (
+                    <SectionMessage message="Spending data unavailable." />
+                  ) : spendingMixItems.length ? (
+                    <div className="space-y-3 list-fade-mask">
+                      {spendingMixItems.map((item) => (
+                        <SignalItem
+                          key={`${item.title}-${item.subtitle}-${item.value ?? ''}`}
+                          title={item.title}
+                          subtitle={item.subtitle}
+                          value={item.value}
+                          tone={item.tone}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <SectionMessage message="No spending data yet." />
+                  )}
+                </div>
+              </>
+            )}
           </FinanceCard>
         </motion.div>
 

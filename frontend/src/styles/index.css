@@ -339,11 +339,11 @@
 
   .hero-title {
     font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
-    @apply mt-3 text-[2rem] font-semibold leading-[1.02] tracking-[-0.04em] text-slate-950 dark:text-white md:text-[3.15rem];
+    @apply mt-3 text-[1.65rem] font-semibold leading-[1.05] tracking-[-0.04em] text-slate-950 dark:text-white md:text-[2.4rem];
   }
 
   .hero-description {
-    @apply mt-4 max-w-3xl text-[15px] leading-7 text-slate-600 dark:text-slate-300 sm:text-[17px];
+    @apply mt-3 max-w-3xl text-[14px] leading-7 text-slate-600 dark:text-slate-300 sm:text-[15px];
   }
 
   .brand-pill,
@@ -372,16 +372,16 @@
   }
 
   .metric-label {
-    @apply text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400;
+    @apply text-[10px] font-semibold uppercase tracking-[0.26em] text-slate-500 dark:text-slate-400;
   }
 
   .metric-value {
     font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
-    @apply mt-3 text-xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-2xl;
+    @apply mt-2.5 text-lg font-semibold tracking-tight text-slate-950 dark:text-white sm:text-xl;
   }
 
   .metric-meta {
-    @apply mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300;
+    @apply mt-2 text-[13px] leading-6 text-slate-600 dark:text-slate-300;
   }
 
   .auth-shell {
@@ -1046,6 +1046,68 @@
     background-color: rgb(255 255 255 / 0.8);
   }
 
+  .dashboard-carousel {
+    @apply mt-7 w-full max-w-none;
+  }
+
+  .dashboard-carousel-track {
+    position: relative;
+    min-height: 160px;
+  }
+
+  .carousel-card {
+    @apply rounded-[24px] border border-white/60 px-5 py-5 shadow-sm backdrop-blur-md dark:border-white/10;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.18), transparent 45%),
+      radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.12), transparent 42%),
+      linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(241, 246, 255, 0.78));
+  }
+
+  html.dark .carousel-card {
+    background:
+      radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.22), transparent 45%),
+      radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.18), transparent 42%),
+      linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(10, 17, 32, 0.78));
+  }
+
+  .carousel-card-ghost {
+    position: absolute;
+    inset: 12px 10px 0 10px;
+    opacity: 0.35;
+    filter: blur(0.3px);
+    transform: translateX(14px);
+    pointer-events: none;
+  }
+
+  .carousel-card.is-active {
+    position: relative;
+    z-index: 1;
+  }
+
+  .carousel-title {
+    @apply text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400;
+  }
+
+  .carousel-value {
+    @apply mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950 dark:text-white;
+  }
+
+  .carousel-subtle {
+    @apply mt-1 text-[13px] leading-6 text-slate-500 dark:text-slate-400;
+  }
+
+  .carousel-dots {
+    @apply mt-3 flex items-center gap-2;
+  }
+
+  .carousel-dot {
+    @apply h-2 w-2 rounded-full bg-slate-200/80 transition-all duration-300 dark:bg-slate-700/70;
+  }
+
+  .carousel-dot.is-active {
+    @apply w-5 bg-primary dark:bg-blue-400;
+  }
+
   .hero-metric {
     @apply rounded-[26px] border border-white/70 p-5 shadow-sm backdrop-blur-xl dark:border-white/10;
     background-color: rgb(255 255 255 / 0.78);
@@ -1056,11 +1118,11 @@
   }
 
   .hero-metric-value {
-    @apply mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white;
+    @apply mt-3 text-2xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white sm:text-[1.9rem];
   }
 
   .hero-metric-subtle {
-    @apply mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400;
+    @apply mt-2 text-[13px] leading-6 text-slate-500 dark:text-slate-400;
   }
 
   .stats-grid {
@@ -1094,7 +1156,7 @@
   }
 
   .section-title {
-    @apply text-[1.35rem] font-semibold tracking-[-0.03em] text-slate-950 dark:text-white;
+    @apply text-[1.15rem] font-semibold tracking-[-0.03em] text-slate-950 dark:text-white;
   }
 
   .section-copy {
@@ -1107,7 +1169,7 @@
   }
 
   .mini-stat-value {
-    @apply mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950 dark:text-white;
+    @apply mt-2 text-lg font-semibold tracking-[-0.03em] text-slate-950 dark:text-white;
   }
 
   .timeline-item {

@@ -139,7 +139,7 @@ export function Dashboard() {
         transition={{ type: 'spring', stiffness: 100, damping: 20 }}
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_20%,rgba(30,58,138,0.16),transparent_18%),radial-gradient(circle_at_72%_82%,rgba(16,185,129,0.12),transparent_20%)]" />
-        <div className="relative grid gap-7 xl:grid-cols-[minmax(0,1.25fr)_380px] xl:items-end">
+        <div className="relative grid gap-7 xl:grid-cols-[minmax(0,1fr)_minmax(19rem,22rem)] xl:items-end 2xl:grid-cols-[minmax(0,1.25fr)_380px]">
           <div className="max-w-4xl">
             <div className="dashboard-pill">
               Dashboard

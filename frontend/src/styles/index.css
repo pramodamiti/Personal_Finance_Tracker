@@ -89,7 +89,7 @@
   }
 
   .layout-grid {
-    @apply min-h-screen lg:grid lg:grid-cols-[304px_minmax(0,1fr)] 3xl:grid-cols-[332px_minmax(0,1fr)];
+    @apply min-h-screen min-w-0 lg:grid lg:grid-cols-[304px_minmax(0,1fr)] 3xl:grid-cols-[332px_minmax(0,1fr)];
   }
 
   .layout-grid.is-collapsed {
@@ -97,11 +97,11 @@
   }
 
   .sidebar-shell {
-    @apply p-4 lg:p-5;
+    @apply min-w-0 p-4 lg:p-5;
   }
 
   .sidebar-panel {
-    @apply sticky top-5 flex min-h-[calc(100vh-2.5rem)] flex-col gap-6 border border-white/60 bg-white/70 px-5 py-6 shadow-glass backdrop-blur-md dark:border-white/10 dark:bg-slate-900/60 dark:shadow-glass-dark;
+    @apply sticky top-5 flex min-h-[calc(100vh-2.5rem)] min-w-0 flex-col gap-6 border border-white/60 bg-white/70 px-5 py-6 shadow-glass backdrop-blur-md dark:border-white/10 dark:bg-slate-900/60 dark:shadow-glass-dark;
   }
 
   .sidebar-panel-collapsed {
@@ -121,11 +121,11 @@
   }
 
   .app-main {
-    @apply min-h-screen px-4 pb-28 pt-5 sm:px-6 sm:pt-7 lg:px-10 lg:pb-10;
+    @apply min-h-screen min-w-0 px-4 pb-28 pt-5 sm:px-6 sm:pt-7 lg:px-10 lg:pb-10;
   }
 
   .content-wrap {
-    @apply relative z-10 mx-auto flex w-full max-w-[1560px] flex-col gap-5 sm:gap-6;
+    @apply relative z-10 mx-auto flex w-full min-w-0 max-w-[1560px] flex-col gap-5 sm:gap-6;
   }
 
   .hero-panel {
@@ -478,6 +478,24 @@
 
   .hero-metric-subtle {
     @apply mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400;
+  }
+
+  .stats-grid {
+    @apply grid grid-cols-1 gap-5;
+  }
+
+  .stats-card {
+    @apply min-w-0;
+  }
+
+  @screen md {
+    .stats-grid {
+      grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    }
+
+    .stats-card-wide {
+      grid-column: span 2 / span 2;
+    }
   }
 
   .bento-grid {

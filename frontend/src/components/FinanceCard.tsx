@@ -40,7 +40,7 @@ export function FinanceCard({
           : undefined
       }
       className={clsx(
-        'card transform-gpu will-change-transform transition-all duration-500 ease-in-out',
+        'card min-w-0 transform-gpu will-change-transform transition-all duration-500 ease-in-out',
         interactive &&
           'cursor-pointer shadow-sm hover:shadow-premium hover:dark:border-white/20',
         className

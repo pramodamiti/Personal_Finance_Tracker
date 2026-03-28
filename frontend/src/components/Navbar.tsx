@@ -154,15 +154,32 @@ function CollapseIcon({ className }: IconProps) {
   );
 }
 
+function LogoutIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <path d="M14 7.5V5.75A1.75 1.75 0 0 0 12.25 4h-5.5A1.75 1.75 0 0 0 5 5.75v12.5A1.75 1.75 0 0 0 6.75 20h5.5A1.75 1.75 0 0 0 14 18.25V16.5" />
+      <path d="M10 12h9" />
+      <path d="M16 8.5 19.5 12 16 15.5" />
+    </svg>
+  );
+}
+
 export function Navbar({ items, user, onLogout, isCollapsed = false, onToggleCollapse }: NavbarProps) {
+  const userDisplayName = user?.displayName || 'User';
+  const userInitial = userDisplayName.slice(0, 1).toUpperCase();
+
   return (
     <>
       <aside className="hidden lg:block">
         <div className="sidebar-shell">
           <div className={clsx('surface sidebar-panel', isCollapsed && 'sidebar-panel-collapsed')}>
             <div>
-              <div className={clsx('flex items-start gap-3', isCollapsed ? 'justify-center' : 'justify-between')}>
-                {isCollapsed ? null : (
+              <div className={clsx('flex items-start gap-3', isCollapsed ? 'sidebar-compact-header' : 'justify-between')}>
+                {isCollapsed ? (
+                  <div className="sidebar-compact-brand" aria-hidden="true">
+                    PF
+                  </div>
+                ) : (
                   <div className="dashboard-pill">
                     Personal Finance OS
                   </div>
@@ -193,15 +210,18 @@ export function Navbar({ items, user, onLogout, isCollapsed = false, onToggleCol
               )}
             </div>
 
-            <nav className="mt-2 grid gap-2">
+            <nav className={clsx('sidebar-nav grid', isCollapsed ? 'sidebar-nav-collapsed' : 'mt-2 gap-2')}>
               {items.map((item) => (
                 <motion.div key={item.href} whileHover={{ scale: 1.02, y: -4 }} whileTap={{ scale: 0.98 }} transition={{ type: 'spring', stiffness: 100, damping: 20 }}>
                   <NavLink
                     to={item.href}
+                    aria-label={item.label}
                     className={({ isActive }) =>
                       clsx(
-                        'group flex min-h-[56px] transform-gpu will-change-transform items-center gap-3 rounded-[22px] px-4 py-3 text-[15px] font-semibold transition-all duration-500 ease-in-out',
-                        isCollapsed && 'justify-center px-3',
+                        'sidebar-nav-link group flex transform-gpu will-change-transform items-center font-semibold transition-all duration-500 ease-in-out',
+                        isCollapsed
+                          ? 'sidebar-nav-link-collapsed justify-center'
+                          : 'min-h-[56px] gap-3 rounded-[22px] px-4 py-3 text-[15px]',
                         isActive
                           ? 'bg-gradient-to-r from-primary to-blue-700 text-white shadow-lg shadow-primary/20'
                           : 'text-slate-600 hover:bg-slate-100/90 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800/80 dark:hover:text-white'
@@ -209,7 +229,12 @@ export function Navbar({ items, user, onLogout, isCollapsed = false, onToggleCol
                     }
                     title={item.label}
                   >
-                    <span className="flex h-11 w-11 items-center justify-center rounded-[18px] bg-black/5 text-current dark:bg-white/10">
+                    <span
+                      className={clsx(
+                        'sidebar-nav-icon flex items-center justify-center text-current transition-all duration-500 ease-in-out',
+                        isCollapsed ? 'sidebar-nav-icon-collapsed' : 'h-11 w-11 rounded-[18px] bg-black/5 dark:bg-white/10'
+                      )}
+                    >
                       {navIcon(item.href, 'h-5 w-5')}
                     </span>
                     {isCollapsed ? null : <span>{item.label}</span>}
@@ -219,12 +244,22 @@ export function Navbar({ items, user, onLogout, isCollapsed = false, onToggleCol
             </nav>
 
             {isCollapsed ? (
-              <div className="mt-auto flex flex-col items-center gap-3 rounded-[28px] border border-white/60 bg-white/70 p-4 shadow-sm backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-950/70">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-primary to-blue-700 text-base font-semibold text-white">
-                  {(user?.displayName || 'U').slice(0, 1).toUpperCase()}
+              <div className="sidebar-compact-footer">
+                <div
+                  className="sidebar-compact-avatar"
+                  title={user?.email ? `${userDisplayName} • ${user.email}` : userDisplayName}
+                >
+                  {userInitial}
                 </div>
-                <MotionButton type="button" variant="secondary" className="w-full px-0" onClick={onLogout}>
-                  Out
+                <MotionButton
+                  type="button"
+                  variant="secondary"
+                  className="sidebar-compact-logout"
+                  onClick={onLogout}
+                  aria-label="Logout"
+                  title="Logout"
+                >
+                  <LogoutIcon className="h-4 w-4" />
                 </MotionButton>
               </div>
             ) : (

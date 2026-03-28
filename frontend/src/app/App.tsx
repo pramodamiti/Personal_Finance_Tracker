@@ -8,8 +8,10 @@ import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
 import { BarChart, Bar, CartesianGrid, Legend, LineChart, Line, PieChart, Pie, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
 import { Navbar, type NavItem } from '../components/Navbar';
+import { Topbar } from '../components/Topbar';
 import { FinanceCard } from '../components/FinanceCard';
 import { Dashboard } from './Dashboard';
+import { LandingPage } from './Landing';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { MotionButton } from '../components/MotionButton';
 import { PageWrapper } from '../components/PageWrapper';
@@ -235,25 +237,17 @@ function SectionTitle({ title, description }: { title: string; description?: str
 
 function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuthStore();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-
-    return window.localStorage.getItem('pft-sidebar-collapsed') === 'true';
-  });
-
-  useEffect(() => {
-    window.localStorage.setItem('pft-sidebar-collapsed', String(isSidebarCollapsed));
-  }, [isSidebarCollapsed]);
 
   return (
     <div className="app-shell">
       <div className="ambient ambient-one" />
       <div className="ambient ambient-two" />
       <div className="ambient ambient-three" />
-      <div className={`layout-grid ${isSidebarCollapsed ? 'is-collapsed' : ''}`}>
-        <Navbar items={nav} user={user} onLogout={logout} isCollapsed={isSidebarCollapsed} onToggleCollapse={() => setIsSidebarCollapsed((current) => !current)} />
+      <Topbar items={nav} user={user} onLogout={logout} />
+      <div className="app-body">
+        <div className="lg:hidden">
+          <Navbar items={nav} user={user} onLogout={logout} isCollapsed={false} onToggleCollapse={() => {}} />
+        </div>
         <main className="app-main" data-scroll-root="true">
           <div className="content-wrap">{children}</div>
         </main>
@@ -353,7 +347,7 @@ function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                     <p className="auth-hero-copy">
                       {carouselSlides[activeSlide].body}
                     </p>
-                    <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                    <div className="auth-stats-grid mt-6 grid gap-3 sm:grid-cols-2">
                       {carouselSlides[activeSlide].stats.map((stat) => (
                         <div key={stat.label} className="auth-stat">
                           <div className="auth-stat-label">{stat.label}</div>
@@ -390,7 +384,7 @@ function AuthPage({ mode }: { mode: 'login' | 'register' }) {
               ))}
             </div>
           </div>
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+          <div className="auth-metrics-grid mt-8 grid gap-3 sm:grid-cols-3">
             <MetricCard label="Forecasting" value="Daily" meta="Month-end balance view" tone="cool" />
             <MetricCard label="Health Score" value="0-100" meta="Savings and cash buffer" tone="emerald" />
             <MetricCard label="Automation" value="Rules" meta="Categories, tags, alerts" tone="warm" />
@@ -404,15 +398,15 @@ function AuthPage({ mode }: { mode: 'login' | 'register' }) {
               <span>{theme === 'dark' ? 'Dark' : 'Light'}</span>
             </button>
           </div>
-          <h2 className="mt-3 text-2xl font-semibold capitalize text-slate-950 dark:text-white">
+          <h2 className="auth-form-title mt-3 text-2xl font-semibold capitalize text-slate-950 dark:text-white">
             {mode === 'register' ? 'Create your account' : 'Login'}
           </h2>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+          <p className="auth-form-copy mt-2 text-sm text-slate-500 dark:text-slate-400">
             {mode === 'register'
               ? 'Start tracking everything in one place.'
               : 'Enter your email and password.'}
           </p>
-          <form className="mt-8 space-y-4" onSubmit={handleSubmit((values) => mutation.mutate(values))}>
+          <form className="auth-form mt-8 space-y-4" onSubmit={handleSubmit((values) => mutation.mutate(values))}>
             {mode !== 'login' && <div><label className="label">Display name</label><input className="input" {...register('displayName')} /></div>}
             <div><label className="label">Email</label><input className="input" {...register('email')} /></div>
             <div><label className="label">Password</label><input type="password" className="input" {...register('password')} /></div>
@@ -425,7 +419,7 @@ function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                   : 'Login'}
             </MotionButton>
           </form>
-          <div className="mt-5 flex flex-wrap gap-3 text-sm">
+          <div className="auth-links mt-5 flex flex-wrap gap-3 text-sm">
             {authLinks.map((link) => (
               <NavLink key={link.key} className="text-primary underline-offset-4 hover:underline" to={link.to}>
                 {link.label}
@@ -1207,8 +1201,153 @@ function RulesPage() {
 }
 
 function SettingsPage() {
-  const { user, logout } = useAuthStore();
-  return <PageWrapper pageKey="settings" className="space-y-6"><PageHeader eyebrow="Profile & Environment" title="Settings" description="Basic profile and environment information." /><FinanceCard className="max-w-xl"><div className="mt-4 space-y-4 text-sm"><div><strong>Name:</strong> {user?.displayName}</div><div><strong>Email:</strong> {user?.email}</div><MotionButton type="button" variant="secondary" className="mt-4 w-full sm:w-auto" onClick={logout}>Logout</MotionButton></div></FinanceCard></PageWrapper>;
+  const { user, logout, setAuth } = useAuthStore();
+  const [profileMessage, setProfileMessage] = useState<string | null>(null);
+  const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
+  const {
+    register: registerProfile,
+    handleSubmit: handleProfileSubmit,
+    reset: resetProfile,
+    formState: { errors: profileErrors }
+  } = useForm<{ displayName: string; email: string }>({
+    defaultValues: {
+      displayName: user?.displayName || '',
+      email: user?.email || ''
+    }
+  });
+  const {
+    register: registerPassword,
+    handleSubmit: handlePasswordSubmit,
+    reset: resetPassword,
+    setError: setPasswordError,
+    formState: { errors: passwordErrors }
+  } = useForm<{ currentPassword: string; newPassword: string; confirmPassword: string }>({
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    }
+  });
+
+  useEffect(() => {
+    resetProfile({
+      displayName: user?.displayName || '',
+      email: user?.email || ''
+    });
+  }, [user, resetProfile]);
+
+  const onSaveProfile = handleProfileSubmit((values) => {
+    if (!user?.id) {
+      setProfileMessage('Please re-login to update your profile.');
+      return;
+    }
+    const nextUser = {
+      id: user.id,
+      displayName: values.displayName,
+      email: values.email
+    };
+    setAuth({ user: nextUser });
+    setProfileMessage('Saved.');
+    window.setTimeout(() => setProfileMessage(null), 2000);
+  });
+
+  const onChangePassword = handlePasswordSubmit((values) => {
+    if (values.newPassword !== values.confirmPassword) {
+      setPasswordError('confirmPassword', { type: 'validate', message: 'Passwords do not match.' });
+      return;
+    }
+    setPasswordMessage('Password update saved locally. Server sync coming soon.');
+    resetPassword();
+    window.setTimeout(() => setPasswordMessage(null), 2400);
+  });
+
+  return (
+    <PageWrapper pageKey="settings" className="space-y-6">
+      <PageHeader
+        eyebrow="Profile & Security"
+        title="Settings"
+        description="Edit your profile and update your password."
+      />
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <FinanceCard className="space-y-5">
+          <SectionTitle title="Profile" description="Update your name and email." />
+          {profileMessage ? (
+            <div className="rounded-[16px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200">
+              {profileMessage}
+            </div>
+          ) : null}
+          <form className="space-y-4" onSubmit={onSaveProfile}>
+            <div>
+              <label className="label">Display name</label>
+              <input className="input" {...registerProfile('displayName', { required: 'Display name is required.' })} />
+              {profileErrors.displayName ? (
+                <div className="mt-2 text-xs text-rose-500">{profileErrors.displayName.message}</div>
+              ) : null}
+            </div>
+            <div>
+              <label className="label">Email</label>
+              <input className="input" type="email" {...registerProfile('email', { required: 'Email is required.' })} />
+              {profileErrors.email ? (
+                <div className="mt-2 text-xs text-rose-500">{profileErrors.email.message}</div>
+              ) : (
+                <div className="mt-2 text-xs text-slate-400">Email changes will require verification.</div>
+              )}
+            </div>
+            <MotionButton type="submit" variant="primary" className="w-full sm:w-auto">
+              Save profile
+            </MotionButton>
+          </form>
+        </FinanceCard>
+
+        <FinanceCard className="space-y-5">
+          <SectionTitle title="Password" description="Use your current password to set a new one." />
+          {passwordMessage ? (
+            <div className="rounded-[16px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200">
+              {passwordMessage}
+            </div>
+          ) : null}
+          <form className="space-y-4" onSubmit={onChangePassword}>
+            <div>
+              <label className="label">Current password</label>
+              <input className="input" type="password" {...registerPassword('currentPassword', { required: 'Current password is required.' })} />
+              {passwordErrors.currentPassword ? (
+                <div className="mt-2 text-xs text-rose-500">{passwordErrors.currentPassword.message}</div>
+              ) : null}
+            </div>
+            <div>
+              <label className="label">New password</label>
+              <input
+                className="input"
+                type="password"
+                {...registerPassword('newPassword', { required: 'New password is required.', minLength: { value: 8, message: 'Minimum 8 characters.' } })}
+              />
+              {passwordErrors.newPassword ? (
+                <div className="mt-2 text-xs text-rose-500">{passwordErrors.newPassword.message}</div>
+              ) : null}
+            </div>
+            <div>
+              <label className="label">Confirm new password</label>
+              <input className="input" type="password" {...registerPassword('confirmPassword', { required: 'Please confirm your new password.' })} />
+              {passwordErrors.confirmPassword ? (
+                <div className="mt-2 text-xs text-rose-500">{passwordErrors.confirmPassword.message}</div>
+              ) : null}
+            </div>
+            <MotionButton type="submit" variant="primary" className="w-full sm:w-auto">
+              Update password
+            </MotionButton>
+            <div className="text-xs text-slate-400">Password updates will be verified on the server once email verification is enabled.</div>
+          </form>
+        </FinanceCard>
+      </div>
+
+      <FinanceCard className="max-w-xl">
+        <SectionTitle title="Session" description="Manage your current session." />
+        <MotionButton type="button" variant="secondary" className="w-full sm:w-auto" onClick={logout}>
+          Logout
+        </MotionButton>
+      </FinanceCard>
+    </PageWrapper>
+  );
 }
 
 function Protected() {
@@ -1233,5 +1372,16 @@ function ScrollToTop() {
 }
 
 export function App() {
-  return <><ScrollToTop /><Routes><Route path="/login" element={<AuthPage mode="login" />} /><Route path="/register" element={<AuthPage mode="register" />} /><Route path="*" element={<Protected />} /></Routes></>;
+  const auth = useAuthStore();
+  return (
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route path="/login" element={<AuthPage mode="login" />} />
+        <Route path="/register" element={<AuthPage mode="register" />} />
+        <Route path="/" element={auth.accessToken ? <Protected /> : <LandingPage />} />
+        <Route path="*" element={<Protected />} />
+      </Routes>
+    </>
+  );
 }

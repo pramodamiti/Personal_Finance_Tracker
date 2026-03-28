@@ -80,18 +80,12 @@ export function Dashboard() {
       value: summary.isError ? 'Unavailable' : formatCurrency(summary.data?.expense),
       hint: 'Current month outflow across categories.',
       tone: 'expense'
-    },
-    {
-      id: 'health',
-      label: 'Health Score',
-      value: healthScore.isError ? 'Unavailable' : String(healthScore.data?.score ?? 0),
-      hint: 'Weighted score from savings, stability, and cash buffer.',
-      tone: 'accent'
     }
   ];
 
   const piePalette = ['#1E3A8A', '#10B981', '#16A34A', '#DC2626', '#0EA5E9', '#F59E0B'];
   const showExtendedPanels = viewMode === 'detailed';
+  const isDetailed = viewMode === 'detailed';
   const score = Number(healthScore.data?.score ?? 0);
   const projectedBalance = Number(forecastMonth.data?.projectedEndBalance ?? 0);
   const safeToSpend = Number(forecastMonth.data?.safeToSpend ?? 0);
@@ -115,6 +109,19 @@ export function Dashboard() {
           tone: 'default' as const
         })) || [])
       ];
+  const limitedSignals = signalItems.slice(0, isDetailed ? 5 : 3);
+  const recentItems = (recentTransactions.data || []).slice(0, isDetailed ? 12 : 5);
+  const insightsItems = (insights.data || []).slice(0, isDetailed ? 6 : 3);
+  function condenseSpending(data: any[]) {
+    if (!data.length) return [];
+    const sorted = [...data].sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0));
+    const primary = sorted.slice(0, isDetailed ? 6 : 4);
+    const rest = sorted.slice(isDetailed ? 6 : 4);
+    if (!rest.length) return primary;
+    const otherTotal = rest.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    return [...primary, { category: 'Other', amount: otherTotal }];
+  }
+  const condensedSpending = condenseSpending(spending.data || []);
   const staggerItem = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -144,12 +151,8 @@ export function Dashboard() {
             <div className="dashboard-pill">
               Dashboard
             </div>
-            <h1 className="hero-title">
-              Track balances, spending, and what comes next.
-            </h1>
-            <p className="hero-description">
-              See your month clearly with forecasts, budgets, trends, and recent activity.
-            </p>
+            <h1 className="hero-title">Your money, clearly.</h1>
+            <p className="hero-description">Balances, spending, and what’s next.</p>
             <div className="mt-6 flex flex-wrap gap-2">
               <span className="signal-chip">Forecast</span>
               <span className="signal-chip">Budgets</span>
@@ -190,9 +193,7 @@ export function Dashboard() {
               <div className="hero-metric-value">
                 {forecastMonth.isError ? 'Unavailable' : formatCurrency(projectedBalance)}
               </div>
-              <div className="hero-metric-subtle">
-                Expected balance at month end.
-              </div>
+              <div className="hero-metric-subtle">Month-end estimate.</div>
             </motion.div>
             <motion.div layoutId="dashboard-summary-score" className="grid gap-4 sm:grid-cols-2">
               <div className="hero-metric">
@@ -203,7 +204,7 @@ export function Dashboard() {
                   {healthScore.isError ? 'Unavailable' : `${score} / 100`}
                 </div>
                 <div className="hero-metric-subtle">
-                  {healthScore.isError ? 'Score unavailable right now.' : `${scoreLabel} across savings, liquidity, and stability.`}
+                  {healthScore.isError ? 'Score unavailable.' : `${scoreLabel} overall.`}
                 </div>
               </div>
               <div className="hero-metric">
@@ -211,9 +212,7 @@ export function Dashboard() {
                 <div className="hero-metric-value">
                   {forecastMonth.isError ? 'Unavailable' : formatCurrency(safeToSpend)}
                 </div>
-                <div className="hero-metric-subtle">
-                  Safe amount left to spend this month.
-                </div>
+                <div className="hero-metric-subtle">Safe to spend.</div>
               </div>
             </motion.div>
           </div>
@@ -240,7 +239,7 @@ export function Dashboard() {
             <DashboardSectionHeader
               eyebrow="Cash Projection"
               title="Projected balance runway"
-              description="A rolling view of how current balance, expected inflow, and scheduled outflow shape the rest of the month."
+              description="Runway through month end."
               action={<div className="dashboard-pill">Updated Live</div>}
             />
             <div className="mb-4 grid gap-3 sm:grid-cols-3">
@@ -259,7 +258,7 @@ export function Dashboard() {
             </div>
             <div className="h-72 w-full">
               {forecastDaily.isError ? (
-                <SectionMessage message="Forecast data is unavailable right now." />
+                <SectionMessage message="Forecast data unavailable." />
               ) : (forecastDaily.data || []).length ? (
                 <ResponsiveContainer>
                   <LineChart data={forecastDaily.data || []}>
@@ -271,7 +270,7 @@ export function Dashboard() {
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
-                <SectionMessage message="Add more transactions to generate a daily forecast." />
+                <SectionMessage message="Add transactions to generate a forecast." />
               )}
             </div>
           </FinanceCard>
@@ -282,14 +281,14 @@ export function Dashboard() {
             <DashboardSectionHeader
               eyebrow="Signal Rail"
               title="Forecast signals"
-              description="The highest-priority warnings and scheduled commitments competing for runway."
+              description="Top alerts and upcoming bills."
             />
             <div className="space-y-3">
               {forecastMonth.isError ? (
-                <SectionMessage message="Forecast signals are unavailable right now." />
-              ) : signalItems.length ? (
+                <SectionMessage message="Signals unavailable." />
+              ) : limitedSignals.length ? (
                 <div className="space-y-3 list-fade-mask">
-                  {signalItems.map((item) => (
+                  {limitedSignals.map((item) => (
                     <SignalItem
                       key={`${item.title}-${item.subtitle}-${item.value ?? ''}`}
                       title={item.title}
@@ -301,8 +300,8 @@ export function Dashboard() {
                 </div>
               ) : (
                 <SignalItem
-                  title="No immediate risk warnings"
-                  subtitle="The current schedule and cash plan are holding without visible pressure."
+                  title="No risk warnings"
+                  subtitle="All clear right now."
                   tone="accent"
                 />
               )}
@@ -310,147 +309,151 @@ export function Dashboard() {
           </FinanceCard>
         </motion.div>
 
-        <motion.div variants={staggerItem} className="2xl:col-span-1">
-          <FinanceCard className="h-full">
-            <DashboardSectionHeader
-              eyebrow="Resilience"
-              title="Financial health"
-              description="A compact scorecard judges can parse instantly, with the highest-impact drivers surfaced below."
-            />
-            {healthScore.isError ? (
-              <SectionMessage message="Health score details are unavailable right now." />
-            ) : (
-              <div className="space-y-5">
-                <RunwayMeter
-                  score={score}
-                  label={scoreLabel}
-                  detail="A blended score based on stability, savings posture, and liquidity headroom."
-                />
-                <div className="space-y-3">
-                  {healthFactors.length ? (
-                    healthFactors.map((factor: any) => (
-                      <SignalItem
-                        key={factor.name}
-                        title={factor.name}
-                        subtitle="Contribution to overall resilience"
-                        value={`${factor.score}/100`}
-                        tone={scoreTone}
-                      />
-                    ))
-                  ) : (
-                    <SectionMessage message="No health score details are available yet." />
-                  )}
+        {isDetailed ? (
+          <motion.div variants={staggerItem} className="2xl:col-span-1">
+            <FinanceCard className="h-full">
+              <DashboardSectionHeader
+                eyebrow="Resilience"
+                title="Financial health"
+                description="Score and key drivers."
+              />
+              {healthScore.isError ? (
+                <SectionMessage message="Health details unavailable." />
+              ) : (
+                <div className="space-y-5">
+                  <RunwayMeter score={score} label={scoreLabel} detail="Stability snapshot." />
+                  <div className="space-y-3">
+                    {healthFactors.length ? (
+                      healthFactors.map((factor: any) => (
+                        <SignalItem
+                          key={factor.name}
+                          title={factor.name}
+                          subtitle="Impact on score"
+                          value={`${factor.score}/100`}
+                          tone={scoreTone}
+                        />
+                      ))
+                    ) : (
+                      <SectionMessage message="No health details yet." />
+                    )}
+                  </div>
                 </div>
+              )}
+            </FinanceCard>
+          </motion.div>
+        ) : null}
+
+        {isDetailed ? (
+          <motion.div variants={staggerItem} className="2xl:col-span-1">
+            <FinanceCard className="h-full">
+              <DashboardSectionHeader
+                eyebrow="Concentration"
+                title="Spending mix"
+                description="Top spend categories."
+              />
+              <div className="h-72 w-full">
+                {spending.isError ? (
+                  <SectionMessage message="Spending data unavailable." />
+                ) : (spending.data || []).length ? (
+                  <ResponsiveContainer>
+                    <PieChart>
+                      <Pie data={condensedSpending} dataKey="amount" nameKey="category" outerRadius={92}>
+                        {condensedSpending.map((_: unknown, index: number) => (
+                          <Cell key={index} fill={piePalette[index % piePalette.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => formatCurrency(value)} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <SectionMessage message="No spending data yet." />
+                )}
               </div>
-            )}
-          </FinanceCard>
-        </motion.div>
+            </FinanceCard>
+          </motion.div>
+        ) : null}
 
-        <motion.div variants={staggerItem} className="2xl:col-span-1">
-          <FinanceCard className="h-full">
-            <DashboardSectionHeader
-              eyebrow="Concentration"
-              title="Spending mix"
-              description="A quick picture of where this month is structurally heavy."
-            />
-            <div className="h-72 w-full">
-              {spending.isError ? (
-                <SectionMessage message="Spending analytics are unavailable right now." />
-              ) : (spending.data || []).length ? (
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie data={spending.data || []} dataKey="amount" nameKey="category" outerRadius={92}>
-                      {(spending.data || []).map((_: unknown, index: number) => (
-                        <Cell key={index} fill={piePalette[index % piePalette.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => formatCurrency(value)} />
-                  </PieChart>
-                </ResponsiveContainer>
+        {isDetailed ? (
+          <motion.div variants={staggerItem} className="2xl:col-span-2">
+            <FinanceCard className="h-full">
+              <DashboardSectionHeader
+                eyebrow="Monthly Story"
+                title="Income vs expense momentum"
+                description="Monthly trend."
+              />
+              <div className="h-72 w-full">
+                {trend.isError ? (
+                  <SectionMessage message="Trend data unavailable." />
+                ) : (trend.data || []).length ? (
+                  <ResponsiveContainer>
+                    <BarChart data={trend.data || []}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => formatCurrency(value)} />
+                      <Bar dataKey="income" fill="#16A34A" radius={[10, 10, 0, 0]} />
+                      <Bar dataKey="expense" fill="#DC2626" radius={[10, 10, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <SectionMessage message="No trend data yet." />
+                )}
+              </div>
+            </FinanceCard>
+          </motion.div>
+        ) : null}
+
+        {isDetailed ? (
+          <motion.div variants={staggerItem} className="md:col-span-2 2xl:col-span-3">
+            <FinanceCard className="h-full">
+              <DashboardSectionHeader
+                eyebrow="Execution Feed"
+                title="Recent transactions"
+                description="Latest activity."
+              />
+              {recentTransactions.isError ? (
+                <SectionMessage message="Recent activity unavailable." />
               ) : (
-                <SectionMessage message="No spending data is available for this period." />
-              )}
-            </div>
-          </FinanceCard>
-        </motion.div>
-
-        <motion.div variants={staggerItem} className="2xl:col-span-2">
-          <FinanceCard className="h-full">
-            <DashboardSectionHeader
-              eyebrow="Monthly Story"
-              title="Income vs expense momentum"
-              description="A side-by-side trend designed to show whether the month is compounding strength or leaking it."
-            />
-            <div className="h-72 w-full">
-              {trend.isError ? (
-                <SectionMessage message="Income and expense trends are unavailable right now." />
-              ) : (trend.data || []).length ? (
-                <ResponsiveContainer>
-                  <BarChart data={trend.data || []}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => formatCurrency(value)} />
-                    <Bar dataKey="income" fill="#16A34A" radius={[10, 10, 0, 0]} />
-                    <Bar dataKey="expense" fill="#DC2626" radius={[10, 10, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <SectionMessage message="No trend data is available for this period." />
-              )}
-            </div>
-          </FinanceCard>
-        </motion.div>
-
-        <motion.div variants={staggerItem} className="md:col-span-2 2xl:col-span-3">
-          <FinanceCard className="h-full">
-            <DashboardSectionHeader
-              eyebrow="Execution Feed"
-              title="Recent transactions"
-              description="A running activity stream on mobile and a denser audit table on larger screens."
-            />
-            {recentTransactions.isError ? (
-              <SectionMessage message="Recent transactions are unavailable right now." />
-            ) : (
-              <>
-                <div className="space-y-3 list-fade-mask md:hidden">
-                  {(recentTransactions.data || []).map((transaction: any) => (
-                    <SignalItem
-                      key={transaction.id}
-                      title={transaction.merchant || transaction.note || transaction.type}
-                      subtitle={`${transaction.transactionDate} · ${transaction.type}`}
-                      value={formatCurrency(transaction.amount)}
-                      tone={Number(transaction.amount) < 0 ? 'danger' : 'default'}
-                    />
-                  ))}
-                </div>
-                <div className="hidden list-fade-mask md:block">
-                  <table className="data-table w-full text-left text-sm">
-                    <thead>
-                      <tr>
-                        <th className="py-2">Merchant</th>
-                        <th className="py-2">Type</th>
-                        <th className="py-2">Date</th>
-                        <th className="py-2">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(recentTransactions.data || []).map((transaction: any) => (
-                        <tr key={transaction.id}>
-                          <td className="py-3">{transaction.merchant || transaction.note || '--'}</td>
-                          <td className="py-3">{transaction.type}</td>
-                          <td className="py-3">{transaction.transactionDate}</td>
-                          <td className="py-3">{formatCurrency(transaction.amount)}</td>
+                <>
+                  <div className="space-y-3 list-fade-mask md:hidden">
+                    {recentItems.map((transaction: any) => (
+                      <SignalItem
+                        key={transaction.id}
+                        title={transaction.merchant || transaction.note || transaction.type}
+                        subtitle={`${transaction.transactionDate} · ${transaction.type}`}
+                        value={formatCurrency(transaction.amount)}
+                        tone={Number(transaction.amount) < 0 ? 'danger' : 'default'}
+                      />
+                    ))}
+                  </div>
+                  <div className="hidden list-fade-mask md:block">
+                    <table className="data-table w-full text-left text-sm">
+                      <thead>
+                        <tr>
+                          <th className="py-2">Merchant</th>
+                          <th className="py-2">Type</th>
+                          <th className="py-2">Date</th>
+                          <th className="py-2">Amount</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {(recentTransactions.data || []).length ? null : <SectionMessage message="No recent transactions found." />}
-              </>
-            )}
-          </FinanceCard>
-        </motion.div>
+                      </thead>
+                      <tbody>
+                        {recentItems.map((transaction: any) => (
+                          <tr key={transaction.id}>
+                            <td className="py-3">{transaction.merchant || transaction.note || '--'}</td>
+                            <td className="py-3">{transaction.type}</td>
+                            <td className="py-3">{transaction.transactionDate}</td>
+                            <td className="py-3">{formatCurrency(transaction.amount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {(recentTransactions.data || []).length ? null : <SectionMessage message="No recent activity yet." />}
+                </>
+              )}
+            </FinanceCard>
+          </motion.div>
+        ) : null}
 
         <AnimatePresence initial={false}>
           {showExtendedPanels ? (
@@ -459,11 +462,11 @@ export function Dashboard() {
                 <DashboardSectionHeader
                   eyebrow="Discipline"
                   title="Budgets"
-                  description="Current category pacing against planned guardrails."
+                  description="Budget pacing."
                 />
                 <div className="space-y-3">
                   {budgets.isError ? (
-                    <SectionMessage message="Budget pacing is unavailable right now." />
+                    <SectionMessage message="Budget data unavailable." />
                   ) : (budgets.data || []).length ? (
                     (budgets.data || []).slice(0, 4).map((budget: any) => (
                       <div key={budget.id}>
@@ -479,7 +482,7 @@ export function Dashboard() {
                       </div>
                     ))
                   ) : (
-                    <SectionMessage message="No budgets are available yet." />
+                    <SectionMessage message="No budgets yet." />
                   )}
                 </div>
               </FinanceCard>
@@ -494,11 +497,11 @@ export function Dashboard() {
                 <DashboardSectionHeader
                   eyebrow="Momentum"
                   title="Goals"
-                  description="Progress against savings targets and long-range intent."
+                  description="Goal progress."
                 />
                 <div className="space-y-3">
                   {goals.isError ? (
-                    <SectionMessage message="Goal progress is unavailable right now." />
+                    <SectionMessage message="Goal data unavailable." />
                   ) : (goals.data || []).length ? (
                     (goals.data || []).slice(0, 4).map((goal: any) => (
                       <div key={goal.id}>
@@ -512,7 +515,7 @@ export function Dashboard() {
                       </div>
                     ))
                   ) : (
-                    <SectionMessage message="No goals are available yet." />
+                    <SectionMessage message="No goals yet." />
                   )}
                 </div>
               </FinanceCard>
@@ -520,31 +523,33 @@ export function Dashboard() {
           ) : null}
         </AnimatePresence>
 
-        <motion.div variants={staggerItem} className="md:col-span-2 2xl:col-span-2">
-          <FinanceCard className="h-full">
-            <DashboardSectionHeader
+        {isDetailed ? (
+          <motion.div variants={staggerItem} className="md:col-span-2 2xl:col-span-2">
+            <FinanceCard className="h-full">
+              <DashboardSectionHeader
               eyebrow="Narrative"
               title="Actionable insights"
-              description="A plain-English layer that turns raw account activity into product-ready recommendations."
+              description="Quick recommendations."
             />
-            <div className="grid gap-3 sm:grid-cols-2">
-              {insights.isError ? (
-                <SectionMessage message="Insights are unavailable right now." />
-              ) : (insights.data || []).length ? (
-                (insights.data || []).map((item: any) => (
-                  <SignalItem
-                    key={item.title}
-                    title={item.title}
-                    subtitle={item.message}
-                    tone="accent"
-                  />
-                ))
-              ) : (
-                <SectionMessage message="No insights are available yet." />
-              )}
-            </div>
-          </FinanceCard>
-        </motion.div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {insights.isError ? (
+                  <SectionMessage message="Insights unavailable." />
+                ) : insightsItems.length ? (
+                  insightsItems.map((item: any) => (
+                    <SignalItem
+                      key={item.title}
+                      title={item.title}
+                      subtitle={item.message}
+                      tone="accent"
+                    />
+                  ))
+                ) : (
+                  <SectionMessage message="No insights yet." />
+                )}
+              </div>
+            </FinanceCard>
+          </motion.div>
+        ) : null}
       </motion.section>
     </div>
   );

@@ -1,0 +1,82 @@
+name: Deploy Backend to Railway
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - ".github/workflows/railway-backend.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+      RAILWAY_ENVIRONMENT: ${{ vars.RAILWAY_ENVIRONMENT }}
+      RAILWAY_BACKEND_SERVICE: ${{ vars.RAILWAY_BACKEND_SERVICE }}
+      RAILWAY_BACKEND_URL: ${{ vars.RAILWAY_BACKEND_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Railway configuration
+        shell: bash
+        run: |
+          required_vars=(
+            RAILWAY_TOKEN
+            RAILWAY_PROJECT_ID
+            RAILWAY_ENVIRONMENT
+            RAILWAY_BACKEND_SERVICE
+          )
+
+          missing=()
+          for var_name in "${required_vars[@]}"; do
+            if [[ -z "${!var_name}" ]]; then
+              missing+=("${var_name}")
+            fi
+          done
+
+          if (( ${#missing[@]} > 0 )); then
+            printf 'Missing required GitHub Actions secret/variables for Railway backend deploy:\n' >&2
+            printf '  - %s\n' "${missing[@]}" >&2
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy backend service
+        shell: bash
+        run: |
+          railway up backend \
+            --path-as-root \
+            --ci \
+            --service "${RAILWAY_BACKEND_SERVICE}" \
+            --environment "${RAILWAY_ENVIRONMENT}" \
+            --project "${RAILWAY_PROJECT_ID}"
+
+      - name: Verify backend readiness
+        if: ${{ env.RAILWAY_BACKEND_URL != '' }}
+        shell: bash
+        run: |
+          for attempt in $(seq 1 18); do
+            status=$(curl -ksS -o /dev/null -w "%{http_code}" "${RAILWAY_BACKEND_URL}/actuator/health/readiness" || true)
+            echo "Health check attempt ${attempt}: HTTP ${status:-000}"
+            if [[ "${status}" == "200" ]]; then
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "Backend did not become ready at ${RAILWAY_BACKEND_URL}/actuator/health/readiness" >&2
+          exit 1

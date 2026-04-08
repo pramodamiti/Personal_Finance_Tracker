@@ -1,8 +1,6 @@
 import axios from 'axios';
 import { clearAuthSnapshot, getAuthSnapshot, replaceAuthSnapshot } from '../store/authStore';
 
-const productionApiBaseUrl = 'https://pst-dug9c6gfbvd4facx.centralindia-01.azurewebsites.net/api';
-
 function resolveBaseUrl() {
   const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
   if (configuredBaseUrl) {
@@ -14,9 +12,11 @@ function resolveBaseUrl() {
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return 'http://localhost:8080/api';
     }
+
+    return `${window.location.origin.replace(/\/+$/, '')}/api`;
   }
 
-  return productionApiBaseUrl;
+  return '/api';
 }
 
 const baseURL = resolveBaseUrl();

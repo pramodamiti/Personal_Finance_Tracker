@@ -1,0 +1,65 @@
+name: Deploy Frontend to Railway
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "frontend/**"
+      - ".github/workflows/railway-frontend.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+      RAILWAY_ENVIRONMENT: ${{ vars.RAILWAY_ENVIRONMENT }}
+      RAILWAY_FRONTEND_SERVICE: ${{ vars.RAILWAY_FRONTEND_SERVICE }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Railway configuration
+        shell: bash
+        run: |
+          required_vars=(
+            RAILWAY_TOKEN
+            RAILWAY_PROJECT_ID
+            RAILWAY_ENVIRONMENT
+            RAILWAY_FRONTEND_SERVICE
+          )
+
+          missing=()
+          for var_name in "${required_vars[@]}"; do
+            if [[ -z "${!var_name}" ]]; then
+              missing+=("${var_name}")
+            fi
+          done
+
+          if (( ${#missing[@]} > 0 )); then
+            printf 'Missing required GitHub Actions secret/variables for Railway frontend deploy:\n' >&2
+            printf '  - %s\n' "${missing[@]}" >&2
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy frontend service
+        shell: bash
+        run: |
+          railway up frontend \
+            --path-as-root \
+            --ci \
+            --service "${RAILWAY_FRONTEND_SERVICE}" \
+            --environment "${RAILWAY_ENVIRONMENT}" \
+            --project "${RAILWAY_PROJECT_ID}"

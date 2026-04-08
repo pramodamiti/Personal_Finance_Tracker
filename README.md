@@ -66,9 +66,12 @@ cp frontend/.env.example frontend/.env
 
 Set the backend datasource values and the frontend API URL for your environment.
 
+For hosted PostgreSQL providers like Render or Railway, you can now supply a single `DATABASE_URL` in standard form such as `postgresql://user:password@host:port/database`. The backend will translate that into the JDBC settings Spring Boot needs at startup.
+
 Example:
 
 ```bash
+export DATABASE_URL='postgresql://user:password@host:port/personal_finance_tracker'
 export SPRING_DATASOURCE_URL='jdbc:postgresql://localhost:5432/personal_finance_tracker'
 export SPRING_DATASOURCE_USERNAME='postgres'
 export SPRING_DATASOURCE_PASSWORD='postgres'
@@ -77,6 +80,8 @@ export JWT_SECRET='change-me-super-secret-key-change-me-super-secret-key'
 export SPRING_PROFILES_ACTIVE='local'
 export VITE_API_BASE_URL='http://localhost:8080/api'
 ```
+
+If `DATABASE_URL` is set, it is used automatically whenever `SPRING_DATASOURCE_URL` is not set.
 
 ### 2. Run the backend
 ```bash
@@ -97,6 +102,45 @@ npm run dev
 
 Frontend URL:
 - `http://localhost:1455`
+
+## GitHub Deploys on Railway
+
+This repository now deploys to Railway through GitHub Actions instead of Azure.
+
+### GitHub secret
+
+- `RAILWAY_TOKEN`
+
+Use a Railway project token for the target environment. Railway's CLI docs note that project tokens support deployment actions like `railway up`.
+
+### GitHub repository variables
+
+- `RAILWAY_PROJECT_ID`
+- `RAILWAY_ENVIRONMENT`
+- `RAILWAY_BACKEND_SERVICE`
+- `RAILWAY_FRONTEND_SERVICE`
+- `RAILWAY_BACKEND_URL`
+
+`RAILWAY_BACKEND_URL` is optional but recommended so the backend workflow can verify `/actuator/health/readiness` after deploy.
+
+### Railway backend service variables
+
+- `DATABASE_URL`
+- `JWT_SECRET`
+- `APP_FRONTEND_URL`
+- `SPRING_PROFILES_ACTIVE=production`
+- `SPRINGDOC_SWAGGER_UI_ENABLED=false`
+- `SPRINGDOC_API_DOCS_ENABLED=false`
+
+### Railway frontend service variables
+
+- `VITE_API_BASE_URL=https://<your-backend-domain>/api`
+
+### Workflow behavior
+
+- [railway-backend.yml](/workspaces/Personal_Finance_Tracker/.github/workflows/railway-backend.yml) deploys the `backend/` directory to the Railway backend service on pushes to `main`.
+- [railway-frontend.yml](/workspaces/Personal_Finance_Tracker/.github/workflows/railway-frontend.yml) deploys the `frontend/` directory to the Railway frontend service on pushes to `main`.
+- Both workflows also support manual runs through `workflow_dispatch`.
 
 ## Product scope implemented
 

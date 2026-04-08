@@ -60,7 +60,7 @@ app:
     allowed-origins:
       - ${APP_FRONTEND_URL:http://localhost:1455}
     allowed-origin-patterns:
-      - ${APP_CORS_ALLOWED_ORIGIN_PATTERN:https://*.azurestaticapps.net}
+      - ${APP_CORS_ALLOWED_ORIGIN_PATTERN:}
   scheduling:
     recurring-cron: ${APP_SCHEDULING_RECURRING_CRON:0 0 * * * *}
     lock-at-most-for: ${APP_SCHEDULING_LOCK_AT_MOST_FOR:PT10M}
